@@ -1,4 +1,73 @@
-# Babel-compiled files
-build/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
 
-.idea/
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Sphinx documentation
+docs/_build/
+python/docs/_build
+
+# dotenv
+.env
+
+# virtualenv
+.venv
+venv/
+ENV/
+
+# Java
+*.class
+
+# Atom
+*.tags
+*.tags_swap
+
+# Caches
+*.cache
+*.mypy_cache
+*.pytest_cache
+
+# Python build
+python/build
+python/dist
+python/*.egg-info
+
+# Dependencies
+node_modules
+**/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/build
+
+# Misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Jetbrains
+.idea
