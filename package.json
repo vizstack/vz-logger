@@ -1,7 +1,7 @@
 {
   "name": "vizstack-logger",
   "version": "0.0.0",
-  "description": "Visual, multi-platform, web-based logging framework",
+  "description": "Visual, multi-platform, web-based logging app for Vizstack",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^4.1.0",
