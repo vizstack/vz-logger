@@ -1,2 +1,4 @@
 # Babel-compiled files
 build/
+
+.idea/
