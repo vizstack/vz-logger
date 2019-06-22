@@ -43,12 +43,11 @@ ENV/
 *.pytest_cache
 
 # Python build
-python/build
-python/dist
-python/*.egg-info
+**/python/build
+**/python/dist
+**/python/*.egg-info
 
 # Dependencies
-node_modules
 **/node_modules
 /.pnp
 .pnp.js
@@ -71,3 +70,6 @@ yarn-error.log*
 
 # Jetbrains
 .idea
+
+# VSCode
+.vscode
