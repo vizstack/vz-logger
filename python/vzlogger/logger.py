@@ -9,7 +9,7 @@ from typing import Optional, Any, Tuple, Mapping, Sequence
 from inspect import currentframe, getframeinfo
 from types import FrameType
 
-from vizstack.core import assemble, Flow
+from vizstack import assemble, Flow
 
 
 # TODO: Locking, exceptions, msgs?
@@ -122,6 +122,7 @@ class Logger:
             'view': assemble(Flow(*objects)),
         })
 
+        print(msg)
         # TODO: Add error handling
         # self._socket.sendall()
 
