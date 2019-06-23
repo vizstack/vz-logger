@@ -1,6 +1,3 @@
-import socket
-import enum
-import webbrowser
 import sys
 import json
 import time
@@ -8,6 +5,7 @@ import threading
 from typing import Optional, Any, Tuple, Mapping, Sequence
 from inspect import currentframe, getframeinfo
 from types import FrameType
+import socketio
 
 from vizstack import assemble, Flow
 
@@ -24,6 +22,15 @@ from vizstack import assemble, Flow
 # so do View assembly on frontend.
 # TODO: Want machine parsable format to be extractable.
 
+# SocketIO Client used to send log records to server.
+_client = None
+
+def connect(url: str = 'http://localhost:4000'):
+    global _client
+    if _client is not None:
+        _client.disconnect()
+    _client = socketio.Client()
+    _client.connect(url, namespaces=['/program'])
 
 # Log levels to distinguish messages of different severity.
 DEBUG = 1
@@ -122,14 +129,19 @@ class Logger:
             'view': assemble(Flow(*objects)),
         })
 
-        print(msg)
         # TODO: Add error handling
-        # self._socket.sendall()
+        # _client is None:
+        # socketio.exceptions.ConnectionError: Connection refused by the server
+        _client.emit('ProgramToServer', msg, namespace='/program')
 
+# Mutex to protect the logger creation when multi-threading.
 _lock = threading.RLock()
+
+# Map from names to the Logger objects, so that Loggers can be recycled.
 _loggers: Mapping[str, Logger] = dict()
 
 def get_logger(name: str) -> Logger:
+    """Returns the Logger associated with the given name, creating it if it does not already exist."""
     name = str(name)
     _lock.acquire()
     if name not in _loggers:

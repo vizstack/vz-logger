@@ -5,8 +5,6 @@
 
 import express from "express";  // Web app framework.
 import http from "http";  // Serving over HTTP.
-// import https from "https";  // Serving over HTTPS.
-import fs from "fs";  // Filesystem IO.
 import path from "path";  // Filesystem paths.
 import socketio from "socket.io";  // Inter-process socket communication.
 import dotenv from "dotenv";  // Environment configuration.
@@ -19,7 +17,6 @@ dotenv.config();
 // updates **to** the client using SocketIO.
 const app = express();
 const serverHttp = http.createServer(app);
-// const serverHttps = https.createServer(options, app);
 let io = socketio(serverHttp);
 
 // =================================================================================================
@@ -39,36 +36,39 @@ app.get("/hello", function(req, resp) {
 });
 
 // =================================================================================================
-// API request handlers.
-
-const api = express.Router();
-app.use("/api", api);
-
-/**
- * GET /api/example
- * Description of what this route does.
- */
-api.get("/example", function(req, resp) {
-    // resp.send(something);
-    // resp.sendStatus(404);
-});
-
-// =================================================================================================
 // Socket handlers.
 
+const program = io.of('/program');
+const frontend = io.of('/frontend');
+
 /**
- * GET /api/example
- * Description of what this route does.
+ * NAMESPACE /program
+ * Channel through which backend loggers communicate log records to this server.
  */
-io.on('connection', (socket) => {
-    console.log('Client connected');
+program.on('connect', (socket) => {
+    console.debug(`Program connected: ${socket.id}`);
     socket.on('disconnect', () => {
-        console.log('Client disconnected');
+        console.debug(`Program disconnected: ${socket.id}`);
     });
-    socket.on('GotMyMessage', (msg) => {
-        console.log(`Message recieved: ${msg}`);
-        io.emit('BroadcastMyMessage', msg);
+
+    socket.on('ProgramToServer', (msg) => {
+        console.debug('Received message:', msg);
+        frontend.emit('ServerToFrontend', msg);
+        // TODO: append to file on disk (must be thread-safe)
     });
+});
+
+/**
+ * NAMESPACE /frontend
+ * Channel through which new log records are pushed to the frontend.
+ */
+frontend.on('connect', (socket) => {
+    console.debug(`Frontend connected: ${socket.id}`);
+    socket.on('disconnect', () => {
+        console.debug(`Frontend disconnected: ${socket.id}`);
+    });
+
+    // TODO: send previous N logs from file on disk
 });
 
 // =================================================================================================
@@ -78,8 +78,3 @@ const portHttp = process.env.SERVER_PORT_HTTP || 4000;
 serverHttp.listen(portHttp, () => {
     console.log(`Server running at http://localhost:${portHttp}.`);
 });
-
-// const portHttps = process.env.SERVER_PORT_HTTPS || 5000;
-// serverHttps.listen(portHttps, () => {
-//     console.log(`Server running at https://localhost:${portHttps}.`);
-// });
