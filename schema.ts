@@ -21,3 +21,12 @@ type LogMessage = {
     /* Vizstack view of the logged message and/or objects. */
     view: {},
 };
+
+// TODO: Consider switching to:
+// {
+//     filePath: "js/views/todo-view.js",
+//     lineNumber: 50,
+//     columnNumber: 14,
+//     functionName: "render",
+//     loggerName: "herro",
+// }

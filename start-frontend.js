@@ -1,4 +1,4 @@
 // Cross-platform way of calling 'npm run start'.
 const args = [ 'start' ];
-const opts = { stdio: 'inherit', cwd: 'client', shell: true };
+const opts = { stdio: 'inherit', cwd: 'frontend', shell: true };
 require('child_process').spawn('npm', args, opts);

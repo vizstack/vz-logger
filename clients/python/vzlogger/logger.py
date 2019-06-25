@@ -21,16 +21,25 @@ from vizstack import assemble, Flow
 # TODO: How to make logx aligned so printing, e.g. tabular format. Don't want to reimplement,
 # so do View assembly on frontend.
 # TODO: Want machine parsable format to be extractable.
+# TODO: Level-based stdout? Tag-based std out?
+# TODO: Key-value tags, not just key.
+# TODO: Pass stack trace on exceptions (get from frame?).
+# TODO: logger.infoc() closure using lambdas so won't execute expensive if log level too high
 
-# SocketIO Client used to send log records to server.
+# SocketIO Client used to send log records to the server.
 _client = None
 
 def connect(url: str = 'http://localhost:4000'):
     global _client
-    if _client is not None:
-        _client.disconnect()
+    disconnect()
     _client = socketio.Client()
     _client.connect(url, namespaces=['/program'])
+
+def disconnect():
+    global _client
+    if _client is not None:
+        _client.disconnect()
+        _client = None
 
 # Log levels to distinguish messages of different severity.
 DEBUG = 1
@@ -49,9 +58,6 @@ class Logger:
         self._stdout = False
         self._stderr = False
 
-        # TODO: open a socket, retries on fail, retry every 1 second until connect
-        self._socket = None  # TODO
-
 
     # ==============================================================================================
     # Logger configuration.
@@ -68,7 +74,6 @@ class Logger:
 
     def tags(self, *tags: Sequence[str]) -> 'Logger':
         """Sets default tags to attach to log records."""
-        print(tags)
         self._tags = tags
         return self
 
@@ -115,24 +120,26 @@ class Logger:
             filepath = frame_info.filename
             lineno = frame_info.lineno
         
-        # Echo to standard out/err, if configured.
+        # Echo to standard out/err, if set.
         if self._stdout: print(*objects, file=sys.stdout)
         if self._stderr: print(*objects, file=sys.stderr)
         
-        msg: str = json.dumps({
+        record: str = json.dumps({
             'timestamp': int(time.time() * 1000),  # Convert to milliseconds.
             'filepath': filepath,
             'lineno': lineno,
             'logger': self._name,
             'level': _level_to_name[level],
-            'tags': self._tags,
+            'tags': self._tags + tags,
             'view': assemble(Flow(*objects)),
         })
 
+        # TODO: Deal with msg (format string, etc.)
         # TODO: Add error handling
         # _client is None:
         # socketio.exceptions.ConnectionError: Connection refused by the server
-        _client.emit('ProgramToServer', msg, namespace='/program')
+        if _client is not None:
+            _client.emit('ProgramToServer', record, namespace='/program')
 
 # Mutex to protect the logger creation when multi-threading.
 _lock = threading.RLock()
