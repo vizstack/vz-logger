@@ -114,11 +114,16 @@ class Logger:
 
         # Get information about code context.
         frame: Optional[FrameType] = currentframe()
-        filepath, lineno = "", 0
-        if frame is not None:
-            frame_info = getframeinfo(frame.f_back.f_back)
-            filepath = frame_info.filename
-            lineno = frame_info.lineno
+        filepath, lineno, colno, funcname = "", -1, -1, ""
+        try:
+            if frame is not None:
+                frame_info = getframeinfo(frame.f_back.f_back)
+                filepath = frame_info.filename
+                lineno = frame_info.lineno
+                funcname = frame_info.function
+                # Retrieving `colno` from bytecode is not currently possible.
+        finally:
+            del frame
         
         # Echo to standard out/err, if set.
         if self._stdout: print(*objects, file=sys.stdout)
@@ -126,9 +131,11 @@ class Logger:
         
         record: str = json.dumps({
             'timestamp': int(time.time() * 1000),  # Convert to milliseconds.
-            'filepath': filepath,
-            'lineno': lineno,
-            'logger': self._name,
+            'filePath': filepath,
+            'lineNumber': lineno,
+            'columnNumber': colno,
+            'functionName': funcname,
+            'loggerName': self._name,
             'level': _level_to_name[level],
             'tags': self._tags + tags,
             'view': assemble(Flow(*objects)),
