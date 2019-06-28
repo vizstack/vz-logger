@@ -1,6 +1,11 @@
-import socketio from 'socket.io-client';
 import { URL } from 'url';
-import { assemble, Flow } from 'vizstack';
+import socketio from 'socket.io-client';
+import stacktrace from 'stacktrace-js';
+
+// TODO: Replace mocks.
+// import { assemble, Flow } from 'vizstack';
+const assemble = (view: any) => ({ view: view });
+const Flow = (...elems: any[]) => ({ flow: elems });
 
 // SocketIO Client used to send log records to the server.
 let _client: SocketIOClient.Socket | null = null;
@@ -30,11 +35,11 @@ export const WARN = LogLevel.WARN;
 export const ERROR = LogLevel.ERROR;
 
 export class Logger {
-    _name: string;
-    _level: LogLevel;
-    _enabled: boolean;
-    _tags: string[];
-    _console: boolean;
+    private _name: string;
+    private _level: LogLevel;
+    private _enabled: boolean;
+    private _tags: string[];
+    private _console: boolean;
 
     constructor(name: string) {
         this._name = name;
@@ -106,15 +111,32 @@ export class Logger {
     // ==============================================================================================
     // Behind-the-scenes.
 
-    private _log(level: LogLevel, objects: any[], msg: string, tags: str[]) {
+    private async _log(level: LogLevel, objects: any[], msg: string, tags: string[]) {
         // No logging when globally or selectively disabled.
         if(!this._enabled) return;
         if(level < this._level) return;
 
+        // Get time before async stack generation.
+        const timestamp: number = (new Date()).getTime();
+
         // Get information about code context.
-        // TODO
-        let filepath: string = "";
-        let lineno: number = 0;
+        let filePath: string = "";
+        let lineNumber: number = -1;
+        let columnNumber: number = -1;
+        let functionName: string = "";
+        try {
+            const frames = await stacktrace.get({ offline: true });
+            // Index in the stack frame array in which the calling method is located. As it is
+            // determined by this code's implementation, it needs to be updated after a refactor.
+            const kStackIdx: number = 5;
+            if(frames && frames[kStackIdx]) {
+                const f = frames[kStackIdx];
+                filePath = f.fileName;
+                lineNumber = f.lineNumber;
+                columnNumber = f.columnNumber;
+                functionName = f.functionName;
+            }
+        } catch(err) {}
 
         // Echo to console, if set.
         if(this._console && console) {
@@ -127,14 +149,18 @@ export class Logger {
         }
 
         const record: string = JSON.stringify({
-            timestamp: (new Date()).getTime(),
-            filepath: filepath,
-            lineno: lineno,
-            logger: this._name,
-            level: LogLevel[level],
+            timestamp,
+            filePath,
+            lineNumber,
+            columnNumber,
+            functionName,
+            loggerName: this._name,
+            level: LogLevel[level].toLowerCase(),
             tags: [...this._tags, ...tags],
             view: assemble(Flow(...objects)),
         });
+
+        console.log(record);  // TODO: Remove when figured out how to test properly.
 
         if(_client !== null) {
             _client.emit('ProgramToServer', record);

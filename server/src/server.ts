@@ -3,12 +3,11 @@
  * https://stackoverflow.com/questions/11744975/enabling-https-on-express-js
  */
 
-import express from "express";  // Web app framework.
-import http from "http";  // Serving over HTTP.
-import path from "path";  // Filesystem paths.
-import socketio from "socket.io";  // Inter-process socket communication.
-import dotenv from "dotenv";  // Environment configuration.
-
+import express from 'express'; // Web app framework.
+import http from 'http'; // Serving over HTTP.
+import path from 'path'; // Filesystem paths.
+import socketio from 'socket.io'; // Inter-process socket communication.
+import dotenv from 'dotenv'; // Environment configuration.
 
 // Load environment configuration variable into `process.env`.
 dotenv.config();
@@ -23,15 +22,15 @@ let io = socketio(serverHttp);
 // Frontend request handlers.
 
 // Set directory to serve files from (e.g. React client).
-if(process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, "../client/build")));
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '../client/build')));
 }
 
 /**
  * GET /hello
  * Sends an acknowledgement string, so that a client can check whether the server is up and running.
  */
-app.get("/hello", function(req, resp) {
+app.get('/hello', function(req, resp) {
     resp.send(`Server is up and running!`);
 });
 

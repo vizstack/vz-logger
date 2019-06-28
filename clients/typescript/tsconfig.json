@@ -2,22 +2,24 @@
   "compilerOptions": {
     "target": "es6",
     "module": "commonjs",
-    "lib": [
-      "esnext"
-    ],
+    "moduleResolution": "node",
+    "lib": ["esnext"],
     "strict": true,
     "outDir": "./dist",
-    "allowJs": true,
+    
+    "jsx": "preserve",
+    "declaration": true,
+    "sourceMap": true,
+    
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true
+    
+    "noEmitOnError": true
   },
   "include": [
-    "src"
+    "src/**/*"
   ]
 }

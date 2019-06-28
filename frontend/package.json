@@ -27,6 +27,7 @@
     "@types/redux-seamless-immutable": "^0.4.0",
     "@types/seamless-immutable": "^7.1.10",
     "@types/socket.io-client": "^1.4.32",
+    "redux-devtools-extension": "^2.13.8",
     "rimraf": "^2.6.3"
   },
   "proxy": "http://localhost:4000/",
