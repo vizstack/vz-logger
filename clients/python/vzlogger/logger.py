@@ -6,6 +6,7 @@ from typing import Optional, Any, Tuple, Mapping, Sequence
 from inspect import currentframe, getframeinfo
 from types import FrameType
 import socketio
+import contextlib
 
 from vizstack import assemble, Flow
 
@@ -29,17 +30,21 @@ from vizstack import assemble, Flow
 # SocketIO Client used to send log records to the server.
 _client = None
 
-def connect(url: str = 'http://localhost:4000'):
-    global _client
-    disconnect()
-    _client = socketio.Client()
-    _client.connect(url, namespaces=['/program'])
 
-def disconnect():
-    global _client
-    if _client is not None:
+@contextlib.contextmanager
+def connect(url: str = 'http://localhost:4000'):
+    try:
+        global _client
+        if _client is not None:
+            _client.disconnect()
+            _client = None
+        _client = socketio.Client()
+        _client.connect(url, namespaces=['/program'])
+        yield
+    finally:
         _client.disconnect()
         _client = None
+
 
 # Log levels to distinguish messages of different severity.
 DEBUG = 1
