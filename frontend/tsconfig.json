@@ -20,6 +20,9 @@
     "jsx": "preserve"
   },
   "include": [
-    "src"
+    "src", "../schema.ts", "../react-app-env.d.ts"
+  ],
+  "exclude": [
+    "src/store/_example", "src/components/_Example"
   ]
 }

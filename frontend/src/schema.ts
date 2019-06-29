@@ -1,4 +1,4 @@
-export type LogRecord = {
+export type Record = {
     /* Number (integer) of MILLISECONDS since the Unix Epoch. Note that many standard libraries
      * return the number of SECONDS by default, which will need to be converted. */
     timestamp: number;

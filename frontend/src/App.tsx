@@ -1,27 +1,28 @@
 import React from 'react';
 import { createStore, applyMiddleware } from 'redux';
+import { composeWithDevTools } from "redux-devtools-extension";
 import thunk from 'redux-thunk';
 import { Provider as ReduxProvider } from 'react-redux';
 import { ThemeProvider } from '@material-ui/styles';
 import io from 'socket.io-client';
 
 import AppTheme from './theme';
-import mainReducer from './redux';
+import { appReducer } from './store';
 
+import * as dashboard from './store/dashboard';
+import Dashboard from './components/Dashboard';
 
 class App extends React.Component<{}, { records: string[] }> {
-    store = createStore<any, any, any, any>(mainReducer, applyMiddleware(thunk));
+    store = createStore(appReducer, composeWithDevTools(applyMiddleware(thunk)));
+    socket = io('http://localhost:4000/frontend');
 
     constructor(props: any) {
         super(props);
-        // TODO: Move to redux.
-        this.state = {
-            records: [],
-        };
-
-        const socket = io('http://localhost:4000/frontend');
-        socket.on('ServerToFrontend', (msg: string) => {
-            this.setState((s: { records: string[] }) => ({ records: [...s.records, msg] }));
+        
+        // Reconstruct the log record and add to store.
+        this.socket.on('ServerToFrontend', (msg: string) => {
+            const record = JSON.parse(msg);
+            this.store.dispatch(dashboard.actions.addRecordAction(record));
         });
     }
 
@@ -29,10 +30,7 @@ class App extends React.Component<{}, { records: string[] }> {
         return (
             <ReduxProvider store={this.store}>
                 <ThemeProvider theme={AppTheme}>
-                    <div>
-                        <div>Number of records = {this.state.records.length}</div>
-                        {this.state.records.map((r, i) => <div key={i}>{r}<br/><br/></div>)}
-                    </div>
+                    <Dashboard />
                 </ThemeProvider>
             </ReduxProvider>
         );

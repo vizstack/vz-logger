@@ -1,43 +1,16 @@
 import { Dispatch } from 'redux';
-import Immutable, { Immutable as ImmutableT } from 'seamless-immutable';
+import Immutable, { ImmutableObject, ImmutableArray } from 'seamless-immutable';
 
-// =================================================================================================
-// State slice.
+import { ExampleState } from './model';
 
-/* Root reducer's state slice type. */
-export type ExampleState = ImmutableT<{
-    // Description of data member.
-    data: number;
-}>;
 
 /* Root reducer's initial state slice. */
 const initialState: ExampleState = Immutable({
     data: 0,
 });
 
-// =================================================================================================
-// Definitions (public).
-
-/* Description of type. */
-export type ExampleType = string;
-
-// =================================================================================================
-// State accessors (public).
-
-/**
- * Get example data.
- * @param state
- * @returns Data stored in state.
- */
-export function getExampleData(state: ExampleState): number {
-    return state.data;
-}
-
-// =================================================================================================
-// Actions (public) and reducers.
-
-type NoOp = { type: '' };
-type ExampleAction = Action1 | NoOp;
+/* All actions handled by the root reducer. */
+type ExampleAction = Action1;
 
 /**
  * Root reducer for state related to ____.
@@ -46,19 +19,19 @@ type ExampleAction = Action1 | NoOp;
  */
 export default function rootReducer(
     state: ExampleState = initialState,
-    action: ExampleAction = { type: '' },
+    action: ExampleAction,
 ): ExampleState {
     switch (action.type) {
-        case 'Action1':
+        case 'example/Action1':
             return syncReducer(state, action);
         default:
-            return state; // No effect by default
+            return state; // No effect by default.
     }
 }
 
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
 
-type Action1 = { type: 'Action1'; value: number };
+type Action1 = { type: 'example/Action1'; value: number };
 
 /**
  * Description.
@@ -68,7 +41,7 @@ type Action1 = { type: 'Action1'; value: number };
 export function syncAction(value: number): Action1 {
     // Must take form of `[name]Action`
     return {
-        type: 'Action1',
+        type: 'example/Action1',
         value,
     };
 }
@@ -77,7 +50,7 @@ function syncReducer(state: ExampleState, action: Action1): ExampleState {
     return state.set('data', action.value);
 }
 
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
 
 /**
  * Description.

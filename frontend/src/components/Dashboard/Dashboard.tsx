@@ -7,7 +7,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { createSelector } from 'reselect';
 
 import { AppState } from '../../store';
-import * as example from '../../store/_example';
+import * as dashboard from '../../store/dashboard';
 
 /* This [pure dumb / stateful dumb / smart] component ___. */
 type ExampleProps = {
@@ -36,13 +36,15 @@ class Example extends React.Component<ExampleProps & InternalProps, ExampleState
      * Renderer.
      */
     render() {
-        const { classes } = this.props;
+        const { classes, records } = this.props;
         return (
             <div
                 className={clsx(classes.container, {
                     [classes.optional]: false,
                 })}
-            />
+            >
+                {records.map((record) => <p key={record.timestamp}>{JSON.stringify(record)}</p>)}
+            </div>
         );
     }
 }
@@ -54,40 +56,27 @@ const styles = (theme: Theme) =>
         optional: {},
     });
 
-// TODO: For dumb components:
+function mapStateToProps() {
+    const recordsSelector = dashboard.selectors.recordsFactory();
+    return (state: AppState, props: ExampleProps) => ({
+        records: recordsSelector(state),
+    });
+}
 
-type InternalProps = WithStyles<typeof styles>;
+function mapDispatchToProps(dispatch: Dispatch) {
+    return bindActionCreators(
+        {
+            clearRecords: dashboard.actions.clearAllRecordsAction,
+        },
+        dispatch,
+    );
+}
 
-export default withStyles(styles)(Example) as React.ComponentType<ExampleProps>;
+type InternalProps = WithStyles<typeof styles> &
+    ReturnType<ReturnType<typeof mapStateToProps>> &
+    ReturnType<typeof mapDispatchToProps>;
 
-// TODO: For smart components:
-
-// function mapStateToProps() {
-//     const exampleDataSelector = example.selectors.exampleDataFactory();
-//     const localSelector = createSelector(
-//         (state: AppState, props: ExampleProps) => props.children,
-//         (children) => children,
-//     );
-//     return (state: AppState, props: ExampleProps) => ({
-//         propName1: exampleDataSelector(state),
-//         propName2: localSelector(state, props),
-//     });
-// }
-
-// function mapDispatchToProps(dispatch: Dispatch) {
-//     return bindActionCreators(
-//         {
-//             propName: example.actions.syncAction,
-//         },
-//         dispatch,
-//     );
-// }
-
-// type InternalProps = WithStyles<typeof styles> &
-//     ReturnType<ReturnType<typeof mapStateToProps>> &
-//     ReturnType<typeof mapDispatchToProps>;
-
-// export default connect(
-//     mapStateToProps,
-//     mapDispatchToProps,
-// )(withStyles(styles)(Example)) as React.ComponentType<ExampleProps>;
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps,
+)(withStyles(styles)(Example)) as React.ComponentType<ExampleProps>;
