@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStore, applyMiddleware } from 'redux';
-import { composeWithDevTools } from "redux-devtools-extension";
+import { composeWithDevTools } from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
 import { Provider as ReduxProvider } from 'react-redux';
 import { ThemeProvider } from '@material-ui/styles';
@@ -18,7 +18,7 @@ class App extends React.Component<{}, { records: string[] }> {
 
     constructor(props: any) {
         super(props);
-        
+
         // Reconstruct the log record and add to store.
         this.socket.on('ServerToFrontend', (msg: string) => {
             const record = JSON.parse(msg);

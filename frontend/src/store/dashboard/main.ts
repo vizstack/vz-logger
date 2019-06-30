@@ -5,7 +5,6 @@ import cuid from 'cuid';
 import { DashboardState, RecordId, Tag } from './model';
 import { Record } from '../../schema';
 
-
 /* Root reducer's initial state slice. */
 const initialState: DashboardState = Immutable({
     records: {},
@@ -22,7 +21,7 @@ const initialState: DashboardState = Immutable({
     timeFilter: {
         start: null,
         end: null,
-    }
+    },
 });
 
 /* All actions handled by the root reducer. */
@@ -67,19 +66,17 @@ function addRecordReducer(state: DashboardState, action: AddRecord): DashboardSt
     // i.e., all records before `idx` were created no later than the given record.
     const { record, id } = action;
     let idx: number = state.allRecords.length;
-    while(idx > 0) {
-        const prevId = state.allRecords[idx-1];
+    while (idx > 0) {
+        const prevId = state.allRecords[idx - 1];
         const prevRecord = state.records[prevId];
-        if(prevRecord && prevRecord.timestamp <= record.timestamp) break;
+        if (prevRecord && prevRecord.timestamp <= record.timestamp) break;
         idx--;
     }
-    return (state
-        .setIn(['records', id], record)
-        .update('allRecords', (allRecords: any) => {
-            const arr = allRecords.asMutable();
-            arr.splice(idx, 0, id);
-            return arr;
-        }));
+    return state.setIn(['records', id], record).update('allRecords', (allRecords: any) => {
+        const arr = allRecords.asMutable();
+        arr.splice(idx, 0, id);
+        return arr;
+    });
 }
 
 // =================================================================================================

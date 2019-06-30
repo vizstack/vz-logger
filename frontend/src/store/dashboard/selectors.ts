@@ -4,7 +4,6 @@ import { ImmutableObject, ImmutableArray } from 'seamless-immutable';
 import { AppState } from '..';
 import { DashboardState } from './model';
 
-
 /* Root state slice selector. */
 function rootSelector(state: AppState): DashboardState {
     return state.dashboard;

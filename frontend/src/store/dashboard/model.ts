@@ -2,13 +2,12 @@ import { ImmutableObject, ImmutableArray } from 'seamless-immutable';
 
 import { Record } from '../../schema';
 
-
 /* Root reducer's state slice type. */
 export type DashboardState = ImmutableObject<{
     // Map from id to records.
     records: {
         [key: string]: Record;
-    }
+    };
 
     // List of log records, sorted by timestamp from earliest to latest.
     allRecords: RecordId[];
@@ -21,10 +20,10 @@ export type DashboardState = ImmutableObject<{
 
     // Filter by log level.
     levelFilter: {
-        debug: boolean,
-        info: boolean,
-        warn: boolean,
-        error: boolean,
+        debug: boolean;
+        info: boolean;
+        warn: boolean;
+        error: boolean;
     };
 
     // Filter by tag.
@@ -34,11 +33,11 @@ export type DashboardState = ImmutableObject<{
     timeFilter: {
         start: number | null;
         end: number | null;
-    }
+    };
 }>;
 
 /* Unique identifier for a particular log record, constructed as [timestamp][slug]. */
 export type RecordId = string;
 
 /* Metadata attached to log records for semantic annotation and filtering purposes. */
-export type Tag = { key: string, value?: string };
+export type Tag = { key: string; value?: string };

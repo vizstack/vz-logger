@@ -6,18 +6,26 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { createSelector } from 'reselect';
 
+import Grid from '@material-ui/core/Grid';
+import Typography from '@material-ui/core/Typography';
+import TagsIcon from '@material-ui/icons/LabelOutlined';
+import LevelIcon from '@material-ui/icons/LayersOutlined';  // Layers
+import TimeIcon from '@material-ui/icons/Schedule';  // WatchLater
+
 import { AppState } from '../../store';
 import * as dashboard from '../../store/dashboard';
 
-/* This [pure dumb / stateful dumb / smart] component ___. */
-type ExampleProps = {
+/* This smart component is the main dashboard view of the logger interface that allows exploration
+ * and filtering of log records streamed from the various program clients. */
+
+type DashboardProps = {
     /* React components within opening & closing tags. */
     children?: React.ReactNode;
 };
 
-type ExampleState = {};
+type DashboardState = {};
 
-class Example extends React.Component<ExampleProps & InternalProps, ExampleState> {
+class Dashboard extends React.Component<DashboardProps & InternalProps, DashboardState> {
     /* Prop default values. */
     static defaultProps = {
         // key: value,
@@ -27,7 +35,7 @@ class Example extends React.Component<ExampleProps & InternalProps, ExampleState
      * Constructor.
      * @param props
      */
-    constructor(props: ExampleProps & InternalProps) {
+    constructor(props: DashboardProps & InternalProps) {
         super(props);
         this.state = Immutable({});
     }
@@ -38,27 +46,74 @@ class Example extends React.Component<ExampleProps & InternalProps, ExampleState
     render() {
         const { classes, records } = this.props;
         return (
-            <div
-                className={clsx(classes.container, {
-                    [classes.optional]: false,
-                })}
-            >
-                {records.map((record) => <p key={record.timestamp}>{JSON.stringify(record)}</p>)}
+            <div className={classes.container}>
+                {/* Sidebar ==================================================================== */}
+                <div className={classes.sidebar}>
+                    <Typography variant='h4' gutterBottom>
+                        vz-logger
+                    </Typography>
+                    {/* Tags ------------------------------------------------------------------- */}
+                    <div className={classes.subtitleWithIcon}>
+                        <TagsIcon className={classes.icon} />
+                        <Typography variant='subtitle2'>Tags</Typography>
+                    </div>
+                    <div className={classes.spacer}/>
+                    {/* Level ------------------------------------------------------------------ */}
+                    <div className={classes.subtitleWithIcon}>
+                        <LevelIcon className={classes.icon}/>
+                        <Typography variant='subtitle2'>Level</Typography>
+                    </div>
+                    <div className={classes.spacer}/>
+                    {/* Time ------------------------------------------------------------------- */}
+                    <div className={classes.subtitleWithIcon}>
+                        <TimeIcon className={classes.icon}/>
+                        <Typography variant='subtitle2'>Time</Typography>
+                    </div>
+                </div>
+                {/* Canvas ===================================================================== */}
+                <div className={classes.canvas}>
+                    Number of Records: {records.length}
+                    {records.map((record) => <p key={record.timestamp}>{JSON.stringify(record)}</p>)}
+                </div>
             </div>
         );
     }
 }
 
+// {records.map((record) => <p key={record.timestamp}>{JSON.stringify(record)}</p>)}
+
 const styles = (theme: Theme) =>
     createStyles({
-        // cssKey: value,
-        container: {},
-        optional: {},
+        container: {
+            flexGrow: 1,
+            display: 'flex',
+            padding: theme.scale(16),
+        },
+        sidebar: {
+            minWidth: theme.scale(256),
+        },
+        canvas: {
+            flexGrow: 1,
+            backgroundColor: theme.color.white,
+            padding: theme.scale(16),
+            borderRadius: theme.shape.borderRadius,
+        },
+        subtitleWithIcon: {
+            display: 'flex',
+            alignItems: 'center',
+            userSelect: 'none',
+        },
+        icon: {
+            marginRight: theme.scale(8),
+        },
+        spacer: {
+            height: theme.scale(32),
+        }
     });
 
 function mapStateToProps() {
     const recordsSelector = dashboard.selectors.recordsFactory();
-    return (state: AppState, props: ExampleProps) => ({
+    return (state: AppState, props: DashboardProps) => ({
         records: recordsSelector(state),
     });
 }
@@ -79,4 +134,4 @@ type InternalProps = WithStyles<typeof styles> &
 export default connect(
     mapStateToProps,
     mapDispatchToProps,
-)(withStyles(styles)(Example)) as React.ComponentType<ExampleProps>;
+)(withStyles(styles)(Dashboard)) as React.ComponentType<DashboardProps>;

@@ -3,7 +3,6 @@ import Immutable, { ImmutableObject, ImmutableArray } from 'seamless-immutable';
 
 import { ExampleState } from './model';
 
-
 /* Root reducer's initial state slice. */
 const initialState: ExampleState = Immutable({
     data: 0,

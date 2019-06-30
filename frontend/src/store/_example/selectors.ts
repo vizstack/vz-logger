@@ -4,7 +4,6 @@ import { ImmutableObject, ImmutableArray } from 'seamless-immutable';
 import { AppState } from '..';
 import { ExampleState } from './model';
 
-
 // /* Root state slice selector. */
 // function rootSelector(state: AppState): ExampleState {
 //     return state.example;
