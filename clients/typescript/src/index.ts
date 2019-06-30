@@ -2,10 +2,7 @@ import { URL } from 'url';
 import socketio from 'socket.io-client';
 import stacktrace from 'stacktrace-js';
 
-// TODO: Replace mocks.
-// import { assemble, Flow } from 'vizstack';
-const assemble = (view: any) => ({ view: view });
-const Flow = (...elems: any[]) => ({ flow: elems });
+import { assemble, Flow } from 'vizstack';
 
 // SocketIO Client used to send log records to the server.
 let _client: SocketIOClient.Socket | null = null;
