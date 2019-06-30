@@ -154,7 +154,7 @@ export class Logger {
             loggerName: this._name,
             level: LogLevel[level].toLowerCase(),
             tags: [...this._tags, ...tags],
-            view: assemble(Flow(...objects)),
+            view: assemble(Flow(objects)),
         });
 
         console.log(record);  // TODO: Remove when figured out how to test properly.
