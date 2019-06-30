@@ -6,7 +6,6 @@ from typing import Optional, Any, Tuple, Mapping, Sequence
 from inspect import currentframe, getframeinfo
 from types import FrameType
 import socketio
-import contextlib
 
 from vizstack import assemble, Flow
 
@@ -31,17 +30,30 @@ from vizstack import assemble, Flow
 _client = None
 
 
-@contextlib.contextmanager
-def connect(url: str = 'http://localhost:4000'):
-    try:
+class Connection:
+    """
+    Connects a new socket client on creation, and if used as a context disconnects it on exit.
+    """
+    def __init__(self, url):
+        disconnect()
         global _client
-        if _client is not None:
-            _client.disconnect()
-            _client = None
         _client = socketio.Client()
         _client.connect(url, namespaces=['/program'])
-        yield
-    finally:
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, type, value, traceback):
+        disconnect()
+
+
+def connect(url: str = 'http://localhost:4000'):
+    return Connection(url)
+
+
+def disconnect():
+    global _client
+    if _client is not None:
         _client.disconnect()
         _client = None
 
