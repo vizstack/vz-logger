@@ -2,10 +2,7 @@ import { URL } from 'url';
 import socketio from 'socket.io-client';
 import stacktrace from 'stacktrace-js';
 
-// TODO: Replace mocks.
-// import { assemble, Flow } from 'vizstack';
-const assemble = (view: any) => ({ view: view });
-const Flow = (...elems: any[]) => ({ flow: elems });
+import { assemble, Flow } from 'vizstack';
 
 // SocketIO Client used to send log records to the server.
 let _client: SocketIOClient.Socket | null = null;
@@ -157,7 +154,7 @@ export class Logger {
             loggerName: this._name,
             level: LogLevel[level].toLowerCase(),
             tags: [...this._tags, ...tags],
-            view: assemble(Flow(...objects)),
+            view: assemble(Flow(objects)),
         });
 
         console.log(record);  // TODO: Remove when figured out how to test properly.
