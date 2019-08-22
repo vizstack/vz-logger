@@ -2,7 +2,7 @@ import { URL } from 'url';
 import socketio from 'socket.io-client';
 import stacktrace from 'stacktrace-js';
 
-import { assemble, Flow } from 'vizstack';
+import { assemble, Flow } from '@vizstack/js';
 
 // SocketIO Client used to send log records to the server.
 let _client: SocketIOClient.Socket | null = null;

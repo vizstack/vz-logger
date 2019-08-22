@@ -3,7 +3,7 @@ import { createStore, applyMiddleware } from 'redux';
 import { composeWithDevTools } from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
 import { Provider as ReduxProvider } from 'react-redux';
-import { ThemeProvider } from '@material-ui/styles';
+import { MuiThemeProvider } from '@material-ui/core/styles';
 import io from 'socket.io-client';
 
 import AppTheme from './theme';
@@ -29,9 +29,9 @@ class App extends React.Component<{}, { records: string[] }> {
     render() {
         return (
             <ReduxProvider store={this.store}>
-                <ThemeProvider theme={AppTheme}>
+                <MuiThemeProvider theme={AppTheme}>
                     <Dashboard />
-                </ThemeProvider>
+                </MuiThemeProvider>
             </ReduxProvider>
         );
     }

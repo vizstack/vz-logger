@@ -1,3 +1,5 @@
+import { View } from '@vizstack/schema';
+
 export type Record = {
     /* Number (integer) of MILLISECONDS since the Unix Epoch. Note that many standard libraries
      * return the number of SECONDS by default, which will need to be converted. */
@@ -25,7 +27,7 @@ export type Record = {
     tags: string[];
 
     /* Vizstack view of the logged message and/or objects. */
-    view: {};
+    view: View;
 };
 
 // TODO: Add call stack, code context?

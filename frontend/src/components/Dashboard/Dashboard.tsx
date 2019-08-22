@@ -12,6 +12,11 @@ import TagsIcon from '@material-ui/icons/LabelOutlined';
 import LevelIcon from '@material-ui/icons/LayersOutlined';  // Layers
 import TimeIcon from '@material-ui/icons/Schedule';  // WatchLater
 
+import { assemble, Text } from '@vizstack/js';
+import { InteractionProvider, InteractionManager, Viewer } from '@vizstack/viewer';
+
+import RecordViewer from '../RecordViewer';
+
 import { AppState } from '../../store';
 import * as dashboard from '../../store/dashboard';
 
@@ -31,13 +36,16 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
         // key: value,
     };
 
+    _im: InteractionManager;
+
     /**
      * Constructor.
      * @param props
      */
     constructor(props: DashboardProps & InternalProps) {
         super(props);
-        this.state = Immutable({});
+        this.state = {};
+        this._im = new InteractionManager();
     }
 
     /**
@@ -72,8 +80,9 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                 </div>
                 {/* Canvas ===================================================================== */}
                 <div className={classes.canvas}>
-                    Number of Records: {records.length}
-                    {records.map((record) => <p key={record.timestamp}>{JSON.stringify(record)}</p>)}
+                    <InteractionProvider manager={this._im}>
+                        {records.map((record) => <RecordViewer record={record} />)}
+                    </InteractionProvider>
                 </div>
             </div>
         );
