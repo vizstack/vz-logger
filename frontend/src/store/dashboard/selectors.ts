@@ -20,6 +20,6 @@ export function recordsFactory() {
     return createSelector(
         getAllRecords,
         getRecordsTable,
-        (allRecords, recordsTable) => allRecords.map((recordId) => recordsTable[recordId]),
+        (allRecords, recordsTable) => allRecords.asMutable().map((recordId) => recordsTable[recordId]),
     );
 }

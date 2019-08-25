@@ -8,6 +8,9 @@ import { createSelector } from 'reselect';
 
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
+import IconButton from '@material-ui/core/IconButton';
+import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
+import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 import TagsIcon from '@material-ui/icons/LabelOutlined';
 import LevelIcon from '@material-ui/icons/LayersOutlined';  // Layers
 import TimeIcon from '@material-ui/icons/Schedule';  // WatchLater
@@ -16,6 +19,7 @@ import { assemble, Text } from '@vizstack/js';
 import { InteractionProvider, InteractionManager, Viewer } from '@vizstack/viewer';
 
 import RecordViewer from '../RecordViewer';
+import { Record } from '../../schema';
 
 import { AppState } from '../../store';
 import * as dashboard from '../../store/dashboard';
@@ -28,7 +32,45 @@ type DashboardProps = {
     children?: React.ReactNode;
 };
 
-type DashboardState = {};
+type SortKey = keyof Record;
+
+type DashboardState = {
+    pinnedIdxs: Set<number>,
+    sortBy: SortKey,
+    sortReverse: boolean,
+};
+
+/**
+ * A functional component which renders an interactive column header in the table of log entries.
+ * Clicking the header will sort by that key or toggle the sort order if the key is already being
+ * used.
+ */
+function Header(props: {
+    text: string,
+    sortKey: SortKey,
+    sortBy: SortKey,
+    sortReverse: boolean,
+    setSortBy: (sortBy: SortKey) => void,
+    toggleSortReverse: () => void,
+} & WithStyles<typeof styles>) {
+    const { text, sortKey, classes, sortBy, sortReverse, setSortBy, toggleSortReverse } = props;
+
+    return (
+        <Grid item className={classes.header} xs onClick={() => {
+            if (sortBy !== sortKey) {
+                setSortBy(sortKey);
+            }
+            else {
+               toggleSortReverse();
+            }
+        }} >
+            <Typography className={classes.headerText} variant='subtitle2'>{text}</Typography>
+            {sortBy === sortKey ? (
+                sortReverse ? <ArrowUpwardIcon className={classes.headerIcon} /> : <ArrowDownwardIcon className={classes.headerIcon} />
+            ) : null}
+        </Grid>
+    )
+}
 
 class Dashboard extends React.Component<DashboardProps & InternalProps, DashboardState> {
     /* Prop default values. */
@@ -44,8 +86,27 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
      */
     constructor(props: DashboardProps & InternalProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            pinnedIdxs: new Set(),
+            sortBy: 'timestamp',
+            sortReverse: false,
+        };
         this._im = new InteractionManager();
+    }
+
+    /**
+     * Change which key is used to sort the table of log entries.
+     * @param sortBy 
+     */
+    setSortBy(sortBy: SortKey) {
+        this.setState({sortBy, sortReverse: false});
+    }
+
+    /**
+     * Toggle whether the table of log entries is presented in reverse order.
+     */
+    toggleSortReverse() { 
+        this.setState((state) => ({sortReverse: !state.sortReverse}));
     }
 
     /**
@@ -53,6 +114,14 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
      */
     render() {
         const { classes, records } = this.props;
+        const { pinnedIdxs, sortBy, sortReverse } = this.state;
+
+        const headerProps = {
+            classes, sortBy, sortReverse, 
+            setSortBy: (sortBy: SortKey) => this.setSortBy(sortBy),
+            toggleSortReverse: () => this.toggleSortReverse(),
+        }
+
         return (
             <div className={classes.container}>
                 {/* Sidebar ==================================================================== */}
@@ -81,7 +150,62 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                 {/* Canvas ===================================================================== */}
                 <div className={classes.canvas}>
                     <InteractionProvider manager={this._im}>
-                        {records.map((record) => <RecordViewer record={record} />)}
+                        <Grid container direction="row">
+                            <Grid item className={classes.buttonGutter} />
+                            <Header 
+                                text="Timestamp" 
+                                sortKey="timestamp" 
+                                {...headerProps} />
+                            <Header 
+                                text="File Path" 
+                                sortKey="filePath" 
+                                {...headerProps} />
+                            <Header 
+                                text="Line Number" 
+                                sortKey="lineNumber" 
+                                {...headerProps} />
+                            <Header 
+                                text="Column Number" 
+                                sortKey="columnNumber" 
+                                {...headerProps} />
+                        </Grid>
+                        <Grid container direction="column" justify="flex-start" alignItems="flex-start" >
+                            {records.map((record, idx) => ({
+                                idx,
+                                record,
+                                component: (
+                                    <RecordViewer
+                                        key={record.timestamp}
+                                        record={record}
+                                        pinned={pinnedIdxs.has(idx)}
+                                        pin={() => this.setState((state) => ({
+                                            pinnedIdxs: new Set(state.pinnedIdxs).add(idx),
+                                        }))}
+                                        unpin={() => this.setState((state) => {
+                                            const pinnedIdxs = new Set(state.pinnedIdxs);
+                                            pinnedIdxs.delete(idx);
+                                            return { pinnedIdxs, };
+                                        })}
+                                    />
+                                )
+                            }))
+                            .sort((r1, r2) => {
+                                if (pinnedIdxs.has(r1.idx) && !pinnedIdxs.has(r2.idx)) {
+                                    return -1;
+                                }
+                                if (pinnedIdxs.has(r2.idx) && !pinnedIdxs.has(r1.idx)) {
+                                    return 1;
+                                }
+                                if (r1.record[sortBy] < r2.record[sortBy]) {
+                                    return sortReverse ? 1 : -1;
+                                }
+                                if (r1.record[sortBy] > r2.record[sortBy]) {
+                                    return sortReverse ? -1 : 1;
+                                }
+                                return 0;
+                            })
+                            .map(({component}) => component)}
+                        </Grid>
                     </InteractionProvider>
                 </div>
             </div>
@@ -117,7 +241,20 @@ const styles = (theme: Theme) =>
         },
         spacer: {
             height: theme.scale(32),
-        }
+        },
+        header: {
+            display: 'flex',
+            alignItems: 'center',
+        },
+        headerText: {
+            flexGrow: 1,
+        },
+        headerIcon: {
+            marginRight: '10px',
+        },
+        buttonGutter: {
+            width: '50px',
+        },
     });
 
 function mapStateToProps() {
