@@ -79,12 +79,12 @@ type DashboardState = {
     page: number,
     /* How many records should be shown on each page. */
     recordsPerPage: number,
-
+    /* Filters currently being applied to the record table, of the form `${type}:${name}. */
     filters: string[],
-
-    suggestions: string[],
-
+    /* The text currently being typed into the filter search bar, which is used to generate suggestions. */
     suggestionText: string,
+    /* Filter suggestions built using the current value of `suggestionText`, excluding values already in `filters`.*/
+    suggestions: string[],
 };
 
 /**
@@ -123,35 +123,10 @@ const getSuggestions = (value: string, options: string[]) => {
     const inputValue = value.trim().toLowerCase();
     const inputLength = inputValue.length;
   
-    const s = inputLength === 0 ? [] : options.filter((option) =>
+    return inputLength === 0 ? [] : options.filter((option) =>
         option.toLowerCase().slice(0, inputLength) === inputValue
     );
-    console.log(s);
-    return s;
-  };
-const getSuggestionValue = (suggestion: string) => suggestion;
-const renderSuggestion = (suggestion: string) => {
-    console.log('rendering');
-    return (
-        <MenuItem component="div"><div>{suggestion}</div></MenuItem>
-    )
 };
-const renderSuggestionsContainer = ({containerProps, children}: any) => (
-    <Paper {...containerProps}>
-    {children}
-    </Paper>
-)
-const renderChipInput = (inputProps: any) => {
-    const { classes, filters, onChange, onAdd, onDelete, ref } = inputProps;
-    return (<ChipInput
-        clearInputValueOnChange
-        className={classes.filterBar}
-        value={filters}
-        onAdd={onAdd}
-        onDelete={onDelete}
-        onUpdateInput={onChange}
-    />);
-}
 
 class Dashboard extends React.Component<DashboardProps & InternalProps, DashboardState> {
     /* Prop default values. */
@@ -275,6 +250,11 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
 
         const maxPages = Math.max(1, Math.ceil(records.length / recordsPerPage));
 
+        const shownTags = filters.filter((filter) => filter.startsWith('tag:')).map((filter) => filter.replace('tag:', ''));
+        const shownFiles = filters.filter((filter) => filter.startsWith('file:')).map((filter) => filter.replace('file:', ''));
+        const shownLoggers = filters.filter((filter) => filter.startsWith('logger:')).map((filter) => filter.replace('logger:', ''));
+        const shownFunctions = filters.filter((filter) => filter.startsWith('func:')).map((filter) => filter.replace('func:', ''));
+
         const filterOptions = Array.from(new Set(
             records.reduce((acc: string[], record) => {
                 return [...acc, 
@@ -284,28 +264,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                     `func:${record.functionName}`,
                 ]
             }, [])
-        ))
-
-        const shownTags = filters.filter((filter) => filter.startsWith('tag:')).map((filter) => filter.replace('tag:', ''));
-        const shownFiles = filters.filter((filter) => filter.startsWith('file:')).map((filter) => filter.replace('file:', ''));
-        const shownLoggers = filters.filter((filter) => filter.startsWith('logger:')).map((filter) => filter.replace('logger:', ''));
-        const shownFunctions = filters.filter((filter) => filter.startsWith('func:')).map((filter) => filter.replace('func:', ''));
-
-        // const allTags = Array.from(new Set(records.reduce((acc: string[], record) => acc.concat(record.tags.asMutable()), [])));
-        // const shownTags = filters.filter((filter) => filter.startsWith('tag:')).map((filter) => filter.replace('tag:', ''));
-        
-        // const allFiles = Array.from(new Set(records.map((record) => record.asMutable().filePath)))
-        // const shownFiles = filters.filter((filter) => filter.startsWith('file:')).map((filter) => filter.replace('file:', ''));
-        
-        // const filterOptions = [...allTags, ...allFiles]; 
-
-        // const inputProps: any = {
-        //     classes, filters,
-        //     onChange: ((e: any) => {
-                
-        //     }),
-        // }
-
+        )).filter((filter) => filters.indexOf(filter) === -1);
         const addFilter = (chip: string) => this.setState((state) => ({filters: state.filters.concat(chip), suggestionText: '', }));
         const deleteFilter = (chip: string, idx: number) => this.setState((state) => {
             const filters = [...state.filters];
@@ -323,31 +282,6 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                     <Typography variant='h4' gutterBottom>
                         vz-logger
                     </Typography>
-                    {/* Tags ------------------------------------------------------------------- */}
-                    {/* <div className={classes.filterList}> */}
-                        {/* <div className={classes.subtitleWithIcon}>
-                            <TagsIcon className={classes.icon} />
-                            <Typography variant='subtitle2'>Tags</Typography>
-                        </div>
-                        {tagInfo.tags.map((tag) => (
-                        <FormControlLabel
-                            control={
-                            <Checkbox 
-                            checked={shownTags.indexOf(tag) !== -1} 
-                            onChange={() => this.toggleFilter('shownTags', tag)} 
-                            value={`${tag}-checked`} />
-                            }
-                            label={(
-                                <span>
-                                    <Typography display='inline'>{tag}</Typography>
-                                    <div className={classes.filterSpacer} />
-                                    <Typography display='inline' variant='caption' color='textSecondary'>{`${tagInfo.counts[tag]}`}</Typography>
-                                </span>
-                            )}
-                        />
-                        ))} */}
-                    {/* </div> */}
-                    {/* <div className={classes.spacer}/> */}
                     {/* Level ------------------------------------------------------------------ */}
                     <div className={classes.filterList}>
                         <div className={classes.subtitleWithIcon}>
@@ -411,71 +345,32 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                 {/* Canvas ===================================================================== */}
                 <div className={classes.canvas}>
                     <GridComponent container direction={"row"}>
-                    <div className={classes.filterContainer}>
-                        <ChipInput 
-                            clearInputValueOnChange
-                            className={classes.filterBar}
-                            value={filters}
-                            onAdd={addFilter}
-                            onDelete={deleteFilter}
-                            onUpdateInput={updateSuggestionText}
-                            // when we click a suggestion, the chip input will blur, clearing the 
-                            // suggestions before the click is consumed. a timeout delays the clear.
-                            onBlur={() => setTimeout(() => this.setState({suggestions: []}), 100)}
-                        />
-                        {
-                            suggestions.length > 0 ? (
-                                <Paper className={classes.suggestionsContainer}>
-                                    {suggestions.map((suggestion) => (
-                                        <MenuItem component="div" onClick={(e: any) => {
-                                            addFilter(suggestion);
-                                            this.setState({suggestions: []});
-                                            e.preventDefault();
-                                        }}>{suggestion}</MenuItem>
-                                    ))}
-                                </Paper>
-                            ): null
-                        }
+                        <div className={classes.filterContainer}>
+                            <ChipInput 
+                                clearInputValueOnChange
+                                className={classes.filterBar}
+                                value={filters}
+                                onAdd={addFilter}
+                                onDelete={deleteFilter}
+                                onUpdateInput={updateSuggestionText}
+                                // when we click a suggestion, the chip input will blur, clearing the 
+                                // suggestions before the click is consumed. a timeout delays the clear.
+                                onBlur={() => setTimeout(() => this.setState({suggestions: []}), 100)}
+                            />
+                            {
+                                suggestions.length > 0 ? (
+                                    <Paper className={classes.suggestionsContainer}>
+                                        {suggestions.map((suggestion) => (
+                                            <MenuItem component="div" onClick={(e: any) => {
+                                                addFilter(suggestion);
+                                                this.setState({suggestions: []});
+                                                e.preventDefault();
+                                            }}>{suggestion}</MenuItem>
+                                        ))}
+                                    </Paper>
+                                ): null
+                            }
                         </div>
-                        {/* <Autosuggest
-                            theme={{
-                            container: classes.container,
-                            suggestionsContainerOpen: classes.suggestionsContainerOpen,
-                            suggestionsList: classes.suggestionsList,
-                            suggestion: classes.suggestion
-                            }}
-                            renderInputComponent={renderChipInput}
-                            suggestions={suggestions}
-                            onSuggestionsFetchRequested={onSuggestionsFetchRequested}
-                            onSuggestionsClearRequested={onSuggestionsClearRequested}
-                            getSuggestionValue={getSuggestionValue}
-                            renderSuggestion={renderSuggestion}
-                            renderSuggestionsContainer={renderSuggestionsContainer}
-                            onSuggestionSelected={(e: any, { suggestionValue }: {suggestionValue: string}) => { inputProps.onAdd(suggestionValue); e.preventDefault() }}
-                            focusInputOnSuggestionClick={false}
-                            inputProps={inputProps}
-                        /> */}
-                        {/* <div className={classes.buttonGutter}/> */}
-                        {/* <Header 
-                        text={'Time'}
-                        sortKey={'timestamp'}
-                        {...headerProps}
-                        /> */}
-                        {/* <Header 
-                        text={'File'}
-                        sortKey={'filePath'}
-                        {...headerProps}
-                        />
-                        <Header 
-                        text={'Line'}
-                        sortKey={'lineNumber'}
-                        {...headerProps}
-                        />
-                        <Header 
-                        text={'Column'}
-                        sortKey={'columnNumber'}
-                        {...headerProps}
-                        /> */}
                     </GridComponent>
                     <InteractionProvider manager={this._tableManager}>
                         {records.map((record, idx) => ({record, idx}))
@@ -526,7 +421,11 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                         </div>
                     </InteractionProvider>
                     <div className={classes.pageBar}>
-                        <Button className={classes.pageBarItem} disabled={page === 0} onClick={() => this.setState({page: page - 1})}>prev</Button>
+                        <Button variant='contained' className={classes.pageBarItem} onClick={() => this.toggleSortReverse()}>
+                            {sortReverse ? <ArrowUpwardIcon/> : <ArrowDownwardIcon />}
+                            sort
+                        </Button>
+                        <Button variant='contained' className={classes.pageBarItem} disabled={page === 0} onClick={() => this.setState({page: page - 1})}>prev</Button>
                         <Input 
                         className={clsx(classes.pageBarItem, classes.pageBarInput)}
                         value={page + 1}
@@ -544,7 +443,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                         />
                         <div>of&nbsp;</div>
                         {maxPages}
-                        <Button className={classes.pageBarItem} disabled={page === maxPages - 1} onClick={() => this.setState({page: page + 1})}>next</Button>
+                        <Button variant='contained' className={classes.pageBarItem} disabled={page === maxPages - 1} onClick={() => this.setState({page: page + 1})}>next</Button>
                         <FormControl className={classes.pageBarSelect}>
                             <InputLabel htmlFor='perpage-select'>Per Page</InputLabel>
                             <Select 
@@ -577,28 +476,6 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
 
 const styles = (theme: Theme) =>
     createStyles({
-        filterContainer: {
-            position: 'relative',
-            width: '100%',
-        },
-        suggestionsContainer: {
-            position: 'absolute',
-            marginTop: '8px',
-            marginBottom: '24px',
-            left: 0,
-            right: 0,
-            zIndex: 1
-        },
-        suggestion: {
-            display: 'block'
-        },
-        suggestionsList: {
-            margin: 0,
-            padding: 0,
-            listStyleType: 'none'
-        },
-
-
         root: {
             flexGrow: 1,
             height: 'calc(100vh - 32px)',
@@ -623,6 +500,18 @@ const styles = (theme: Theme) =>
         filterList: {
             display: 'flex',
             flexDirection: 'column',
+        },
+        filterContainer: {
+            position: 'relative',
+            width: '100%',
+        },
+        suggestionsContainer: {
+            position: 'absolute',
+            marginTop: '8px',
+            marginBottom: '24px',
+            left: 0,
+            right: 0,
+            zIndex: 1
         },
         levelFilterText: {
             paddingLeft: 5,

@@ -72,28 +72,78 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
         const date = new Date(timestamp);
 
         return (
-            <Grid container direction="row">
-                <Grid item container direction="column" className={clsx({
-                    [classes.buttonGutter]: true,
-                    [classes.buttonGutterDebug]: record.level === 'debug',
-                    [classes.buttonGutterInfo]: record.level === 'info',
-                    [classes.buttonGutterWarn]: record.level === 'warn',
-                    [classes.buttonGutterError]: record.level === 'error',
+            <div className={classes.root}>
+                <div className={clsx({
+                    [classes.box]: true,
+                    [classes.viewerBoxCollapsed]: !expanded, 
                 })}>
+                    <Viewer view={view.asMutable({deep: true})} />
+                </div>
+                <div className={clsx(classes.box, classes.metadata)}>
+                    <Grid item container direction="row" alignItems="center">
+                        <Grid item>
+                            <Typography variant='caption' color='textSecondary'>
+                                {`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} at ${date.getHours()}:${date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes()}:${date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds()}.${date.getMilliseconds()} from ${filePath}:${lineNumber}`}
+                            </Typography>
+                        </Grid>
+                        <Grid item>
+                            {pinned ? (
+                                <IconButton
+                                    className={classes.button}
+                                    aria-label="unlock"
+                                    onClick={() => togglePinned()}>
+                                    <LockIcon className={classes.icon} />
+                                </IconButton>
+                            ) : (
+                                <IconButton
+                                    className={classes.button}
+                                    aria-label="lock"
+                                    onClick={() => togglePinned()}>
+                                    <LockOpenIcon className={classes.icon} />
+                                </IconButton>
+                            )}
+                        </Grid>
+                        <Grid item>
+                            {expanded ? (
+                                <IconButton
+                                    className={classes.button}
+                                    aria-label="collapse"
+                                    onClick={() => toggleExpanded()}>
+                                    <ExpandLessIcon className={classes.icon} />
+                                </IconButton>
+                            ) : (
+                                <IconButton
+                                    className={classes.button}
+                                    aria-label="expand"
+                                    onClick={() => toggleExpanded()}>
+                                    <ExpandMoreIcon className={classes.icon} />
+                                </IconButton>
+                            )}
+                        </Grid>
+                    </Grid>
+                </div>
+            </div>
+            /* <Grid container direction="row">
+                <Grid item className={clsx({
+                    [classes.viewerBox]: true,
+                    [classes.viewerBoxCollapsed]: !expanded, 
+                })}>
+                </Grid>
+                <Grid item container direction="row" alignItems="center">
                     <Grid item>
                         {pinned ? (
                             <IconButton
                                 className={classes.button}
                                 aria-label="unlock"
                                 onClick={() => togglePinned()}>
-                                <LockIcon />
+                                <LockIcon className={classes.icon} />
                             </IconButton>
                         ) : (
                             <IconButton
                                 className={classes.button}
                                 aria-label="lock"
                                 onClick={() => togglePinned()}>
-                                <LockOpenIcon />
+                                <LockOpenIcon className={classes.icon} />
                             </IconButton>
                         )}
                     </Grid>
@@ -103,60 +153,65 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
                                 className={classes.button}
                                 aria-label="collapse"
                                 onClick={() => toggleExpanded()}>
-                                <ExpandLessIcon />
+                                <ExpandLessIcon className={classes.icon} />
                             </IconButton>
                         ) : (
                             <IconButton
                                 className={classes.button}
                                 aria-label="expand"
                                 onClick={() => toggleExpanded()}>
-                                <ExpandMoreIcon />
+                                <ExpandMoreIcon className={classes.icon} />
                             </IconButton>
                         )}
                     </Grid>
-                </Grid>
-                <Grid item container direction="row" xs>
-                    <Grid item xs={12} className={clsx({
-                        [classes.viewerBox]: true,
-                        [classes.viewerBoxCollapsed]: !expanded, 
-                    })}>
-                        <Viewer view={view.asMutable({deep: true})} />
-                    </Grid>
-                    <Grid item xs>
-                    <Typography variant='caption' color='textSecondary'>
-                        {`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} at ${date.getHours()}:${date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes()}:${date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds()}.${date.getMilliseconds()}`}
-                    </Typography>
-                    </Grid>
-                    <Grid item xs>
-                    <Typography variant='caption' color='textSecondary'>
-                        {filePath}
-                    </Typography>
-                    </Grid>
-                    <Grid item xs>
-                    <Typography variant='caption' color='textSecondary'>
-                        {lineNumber}
-                    </Typography>
-                    </Grid>
-                    <Grid item xs>
-                    <Typography variant='caption' color='textSecondary'>
-                        {columnNumber}
-                    </Typography>
+                    <Grid item>
+                        <Typography variant='caption' color='textSecondary'>
+                            {`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} at ${date.getHours()}:${date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes()}:${date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds()}.${date.getMilliseconds()} from ${filePath}:${lineNumber}`}
+                        </Typography>
                     </Grid>
                 </Grid>
-            </Grid>
+            </Grid> */
+
+            // <Grid container direction="row">
+            //     <Grid item container direction="column" className={clsx({
+            //         [classes.buttonGutter]: true,
+            //         [classes.buttonGutterDebug]: record.level === 'debug',
+            //         [classes.buttonGutterInfo]: record.level === 'info',
+            //         [classes.buttonGutterWarn]: record.level === 'warn',
+            //         [classes.buttonGutterError]: record.level === 'error',
+            //     })}>
+                    
+            //     </Grid>
+            //     <Grid item container direction 
+            //     <Grid item container direction="row" xs>
+            //         <Grid item className={clsx({
+            //             [classes.viewerBox]: true,
+            //             [classes.viewerBoxCollapsed]: !expanded, 
+            //         })}>
+            //             <Viewer view={view.asMutable({deep: true})} />
+            //         </Grid>
+            //     </Grid>
+            // </Grid>
         )
     }
 }
 
 const styles = (theme: Theme) =>
     createStyles({
-        metadata: {
+        root: {
+            display: 'inline-block',
+            width: '100%',
         },
-        viewerBox: {
+        metadata: {
+            float: 'right',
+        },
+        box: {
+            display: 'inline-block',
         },
         viewerBoxCollapsed: {
             maxHeight: 50,
             overflow: 'hidden',
+            verticalAlign: 'bottom',  // this prevents the row height from changing when overflow is set to "hidden"; see https://stackoverflow.com/questions/22421782/css-overflow-hidden-increases-height-of-container
         },
         buttonGutter: {
             width: '50px',
@@ -178,6 +233,10 @@ const styles = (theme: Theme) =>
             borderColor: 'red',
         },
         button: {
+        },
+        icon: {
+            fontSize: 16,
+            margin: -8,
         }
     });
 
