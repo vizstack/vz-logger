@@ -67,8 +67,6 @@ type DashboardState = {
     sortBy: SortKey,
     /* Whether the table should be sorted from greatest to least value of `sortBy`. */
     sortReverse: boolean,
-    /* A list of filtered tags; a record can only be shown if one of its tags is in the list or the list is empty. */
-    shownTags: string[],
     /* A list of filtered levels; a record can only be shown if its level is in the list or the list is empty. */
     shownLevels: string[],
     /* A minimum timestamp that all shown records must have, or null if there is no lower bound. */
@@ -88,37 +86,8 @@ type DashboardState = {
 };
 
 /**
- * A functional component which renders an interactive column header in the table of log entries.
- * Clicking the header will sort by that key or toggle the sort order if the key is already being
- * used.
+ * Returns every string in `options` that starts with `value`.
  */
-function Header(props: {
-    text: string,
-    sortKey: SortKey,
-    sortBy: SortKey,
-    sortReverse: boolean,
-    setSortBy: (sortBy: SortKey) => void,
-    toggleSortReverse: () => void,
-} & WithStyles<typeof styles>) {
-    const { text, sortKey, classes, sortBy, sortReverse, setSortBy, toggleSortReverse } = props;
-
-    return (
-        <GridComponent item className={classes.header} xs onClick={() => {
-            if (sortBy !== sortKey) {
-                setSortBy(sortKey);
-            }
-            else {
-               toggleSortReverse();
-            }
-        }} >
-            <Typography className={classes.headerText} variant='subtitle2'>{text}</Typography>
-            {sortBy === sortKey ? (
-                sortReverse ? <ArrowUpwardIcon className={classes.headerIcon} /> : <ArrowDownwardIcon className={classes.headerIcon} />
-            ) : null}
-        </GridComponent>
-    )
-}
-
 const getSuggestions = (value: string, options: string[]) => {
     const inputValue = value.trim().toLowerCase();
     const inputLength = inputValue.length;
@@ -147,7 +116,6 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
             expandedIdxs: new Set(),
             sortBy: 'timestamp',
             sortReverse: false,
-            shownTags: [],
             shownLevels: [],
             startDate: null,
             endDate: null,
@@ -159,14 +127,10 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
         };
 
         this._tableManager = new InteractionManager();
-    }
 
-    /**
-     * Change which key is used to sort the table of log entries.
-     * @param sortBy 
-     */
-    private setSortBy(sortBy: SortKey) {
-        this.setState({sortBy, sortReverse: false});
+        this.addTextFilter = this.addTextFilter.bind(this);
+        this.deleteTextFilter = this.deleteTextFilter.bind(this);
+        this.updateSuggestionText = this.updateSuggestionText.bind(this);
     }
 
     /**
@@ -177,41 +141,97 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
     }
 
     /**
-     * Toggle whether a given filter should be used for the given key.
+     * Toggle whether a given level should be shown.
      * 
-     * If `filter` is not present in `this.state[filterKey]`, then it will be added to it.
-     * Otherwise, it is removed from `this.state[filterKey]`.
+     * If `level` is not present in `this.state.shownLevels`, then it will be added to it.
+     * Otherwise, it is removed from `this.state.shownLevels`.
      */
-    private toggleFilter(filterKey: 'shownTags' | 'shownLevels', filter: string) {
+    private toggleLevelFilter(level: string) {
         this.setState((state) => {
-            const newFilters = [...state[filterKey]];
-            const filterIndex = state[filterKey].indexOf(filter);
+            const newFilters = [...state.shownLevels];
+            const filterIndex = state.shownLevels.indexOf(level);
             if (filterIndex === -1) {
-                newFilters.push(filter);
+                newFilters.push(level);
                 return {
                     ...state,
-                    [filterKey]: newFilters,
+                    shownLevels: newFilters,
                 }
             }
             else {
                 newFilters.splice(filterIndex, 1);
                 return {
                     ...state,
-                    [filterKey]: newFilters,
+                    shownLevels: newFilters,
                 }
             }
         });
     }
 
+    private addTextFilter(chip: string) {
+        this.setState((state) => ({filters: state.filters.concat(chip), suggestionText: '', }))
+    }
+
+    private deleteTextFilter(chip: string, idx: number) {
+        this.setState((state) => {
+            const filters = [...state.filters];
+            filters.splice(idx, 1);
+            return { filters, };
+        });
+    }
+
+    private updateSuggestionText(e: any) {
+        const { records } = this.props;
+        const { filters } = this.state;
+        const filterOptions = Array.from(new Set(
+            records.reduce((acc: string[], record) => {
+                return [...acc, 
+                    ...record.tags.asMutable().map((tag) => `tag:${tag}`), 
+                    `file:${record.filePath}`, 
+                    `logger:${record.loggerName}`,
+                    `func:${record.functionName}`,
+                ]
+            }, [])
+        )).filter((filter) => filters.indexOf(filter) === -1);
+        this.setState({suggestions: getSuggestions(e.target.value, filterOptions)});
+    }
+
     /**
-     * Create a component to render a given record.
+     * Create components to render records.
      * @param record 
      * @param idx: The index of the record in the record table.
      */
-    private getRecordViewerComponent(record: ImmutableObject<RecordSchema>, idx: number) {
-        const { pinnedIdxs, expandedIdxs } = this.state;
+    private getRecordViewers(records: ImmutableObject<RecordSchema>[], pinned: boolean, filterCollections: {
+        shownTags: string[],
+        shownLevels: string[],
+        shownFiles: string[],
+        shownLoggers: string[],
+        shownFunctions: string[],
+    }) {
+        const { pinnedIdxs, expandedIdxs, endDate, startDate, sortBy, sortReverse } = this.state;
+        const { shownTags, shownLevels, shownFiles, shownLoggers, shownFunctions } = filterCollections;
 
-        return (
+        return records.map((record, idx) => ({record, idx}))
+        .filter(({idx}) => pinned ? pinnedIdxs.has(idx) : !pinnedIdxs.has(idx))
+        .filter(({record}) => {
+            const { startDate, endDate } = this.state;
+            return (startDate === null || startDate.getTime() < record.timestamp) && 
+            (endDate === null || endDate.getTime() > record.timestamp) && 
+            (shownTags.length === 0 || shownTags.some((tag) => record.tags.indexOf(tag) !== -1)) &&
+            (shownLevels.length === 0 || shownLevels.indexOf(record.level) !== -1) &&
+            (shownFiles.length === 0 || shownFiles.indexOf(record.filePath) !== -1) &&
+            (shownLoggers.length === 0 || shownLoggers.indexOf(record.loggerName) !== -1) &&
+            (shownFunctions.length === 0 || shownFunctions.indexOf(record.functionName) !== -1)
+        })
+        .sort((r1, r2) => {
+            if (r1.record[sortBy] < r2.record[sortBy]) {
+                return sortReverse ? 1 : -1;
+            }
+            if (r1.record[sortBy] > r2.record[sortBy]) {
+                return sortReverse ? -1 : 1;
+            }
+            return 0;
+        })
+        .map(({record, idx}) => (
             <RecordViewer
                 key={record.timestamp}
                 record={record}
@@ -238,7 +258,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                     return {expandedIdxs};
                 })}
             />
-        );
+        ));
     }
 
     /**
@@ -250,29 +270,14 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
 
         const maxPages = Math.max(1, Math.ceil(records.length / recordsPerPage));
 
-        const shownTags = filters.filter((filter) => filter.startsWith('tag:')).map((filter) => filter.replace('tag:', ''));
-        const shownFiles = filters.filter((filter) => filter.startsWith('file:')).map((filter) => filter.replace('file:', ''));
-        const shownLoggers = filters.filter((filter) => filter.startsWith('logger:')).map((filter) => filter.replace('logger:', ''));
-        const shownFunctions = filters.filter((filter) => filter.startsWith('func:')).map((filter) => filter.replace('func:', ''));
-
-        const filterOptions = Array.from(new Set(
-            records.reduce((acc: string[], record) => {
-                return [...acc, 
-                    ...record.tags.asMutable().map((tag) => `tag:${tag}`), 
-                    `file:${record.filePath}`, 
-                    `logger:${record.loggerName}`,
-                    `func:${record.functionName}`,
-                ]
-            }, [])
-        )).filter((filter) => filters.indexOf(filter) === -1);
-        const addFilter = (chip: string) => this.setState((state) => ({filters: state.filters.concat(chip), suggestionText: '', }));
-        const deleteFilter = (chip: string, idx: number) => this.setState((state) => {
-            const filters = [...state.filters];
-            filters.splice(idx, 1);
-            return { filters, };
-        });
-        const updateSuggestionText = (e: any) => this.setState({suggestions: getSuggestions(e.target.value, filterOptions)});
-
+        const filterCollections = {
+            shownLevels,
+            shownTags: filters.filter((filter) => filter.startsWith('tag:')).map((filter) => filter.replace('tag:', '')),
+            shownFiles: filters.filter((filter) => filter.startsWith('file:')).map((filter) => filter.replace('file:', '')),
+            shownLoggers: filters.filter((filter) => filter.startsWith('logger:')).map((filter) => filter.replace('logger:', '')),
+            shownFunctions: filters.filter((filter) => filter.startsWith('func:')).map((filter) => filter.replace('func:', '')),
+        }
+        
         // TODO: keyboard controls for autocomplete
 
         return (
@@ -294,7 +299,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                             control={
                             <Checkbox 
                             checked={shownLevels.indexOf(level) !== -1} 
-                            onChange={() => this.toggleFilter('shownLevels', level)} 
+                            onChange={() => this.toggleLevelFilter(level)} 
                             value={`${level}-checked`} />
                             }
                             label={(
@@ -350,9 +355,9 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                                 clearInputValueOnChange
                                 className={classes.filterBar}
                                 value={filters}
-                                onAdd={addFilter}
-                                onDelete={deleteFilter}
-                                onUpdateInput={updateSuggestionText}
+                                onAdd={this.addTextFilter}
+                                onDelete={this.deleteTextFilter}
+                                onUpdateInput={this.updateSuggestionText}
                                 // when we click a suggestion, the chip input will blur, clearing the 
                                 // suggestions before the click is consumed. a timeout delays the clear.
                                 onBlur={() => setTimeout(() => this.setState({suggestions: []}), 100)}
@@ -362,7 +367,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                                     <Paper className={classes.suggestionsContainer}>
                                         {suggestions.map((suggestion) => (
                                             <MenuItem component="div" onClick={(e: any) => {
-                                                addFilter(suggestion);
+                                                this.addTextFilter(suggestion);
                                                 this.setState({suggestions: []});
                                                 e.preventDefault();
                                             }}>{suggestion}</MenuItem>
@@ -373,51 +378,9 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                         </div>
                     </GridComponent>
                     <InteractionProvider manager={this._tableManager}>
-                        {records.map((record, idx) => ({record, idx}))
-                        .filter(({idx}) => pinnedIdxs.has(idx))
-                        .filter(({record}) => {
-                            const { startDate, endDate } = this.state;
-                            return (startDate === null || startDate.getTime() < record.timestamp) && 
-                            (endDate === null || endDate.getTime() > record.timestamp) && 
-                            (shownTags.length === 0 || shownTags.some((tag) => record.tags.indexOf(tag) !== -1)) &&
-                            (shownLevels.length === 0 || shownLevels.indexOf(record.level) !== -1) &&
-                            (shownFiles.length === 0 || shownFiles.indexOf(record.filePath) !== -1) &&
-                            (shownLoggers.length === 0 || shownLoggers.indexOf(record.loggerName) !== -1) &&
-                            (shownFunctions.length === 0 || shownFunctions.indexOf(record.functionName) !== -1)
-                        })
-                        .sort((r1, r2) => {
-                            if (r1.record[sortBy] < r2.record[sortBy]) {
-                                return sortReverse ? 1 : -1;
-                            }
-                            if (r1.record[sortBy] > r2.record[sortBy]) {
-                                return sortReverse ? -1 : 1;
-                            }
-                            return 0;
-                        })
-                        .map(({record, idx}) => this.getRecordViewerComponent(record, idx))}
+                        {this.getRecordViewers(records, true, filterCollections)}
                         <div className={classes.recordList}>
-                            {records.map((record, idx) => ({record, idx}))
-                            .filter(({idx}) => !pinnedIdxs.has(idx) && idx >= recordsPerPage * page && idx < recordsPerPage * (page + 1))
-                            .filter(({record}) => {
-                                const { startDate, endDate } = this.state;
-                                return (startDate === null || startDate.getTime() < record.timestamp) && 
-                                (endDate === null || endDate.getTime() > record.timestamp) && 
-                                (shownTags.length === 0 || shownTags.some((tag) => record.tags.indexOf(tag) !== -1)) &&
-                                (shownLevels.length === 0 || shownLevels.indexOf(record.level) !== -1) &&
-                                (shownFiles.length === 0 || shownFiles.indexOf(record.filePath) !== -1) &&
-                                (shownLoggers.length === 0 || shownLoggers.indexOf(record.loggerName) !== -1) &&
-                                (shownFunctions.length === 0 || shownFunctions.indexOf(record.functionName) !== -1)
-                            })
-                            .sort((r1, r2) => {
-                                if (r1.record[sortBy] < r2.record[sortBy]) {
-                                    return sortReverse ? 1 : -1;
-                                }
-                                if (r1.record[sortBy] > r2.record[sortBy]) {
-                                    return sortReverse ? -1 : 1;
-                                }
-                                return 0;
-                            })
-                            .map(({record, idx}) => this.getRecordViewerComponent(record, idx))}
+                            {this.getRecordViewers(records, false, filterCollections)}
                         </div>
                     </InteractionProvider>
                     <div className={classes.pageBar}>
