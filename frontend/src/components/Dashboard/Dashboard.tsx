@@ -79,16 +79,19 @@ type DashboardState = {
     recordsPerPage: number,
     /* Filters currently being applied to the record table, of the form `${type}:${name}. */
     filters: string[],
-    /* The text currently being typed into the filter search bar, which is used to generate suggestions. */
-    suggestionText: string,
-    /* Filter suggestions built using the current value of `suggestionText`, excluding values already in `filters`.*/
-    suggestions: string[],
+    /* Values needed to show and select filter suggestions. */
+    suggestions: {
+        /* The current filter strings to be suggested. */
+        options: string[],
+        /* The index of the currently hovered option in `options`, or -1 if none is selected. */
+        selectedIdx: number,
+    }
 };
 
 /**
  * Returns every string in `options` that starts with `value`.
  */
-const getSuggestions = (value: string, options: string[]) => {
+const getSuggestionOptions = (value: string, options: string[]) => {
     const inputValue = value.trim().toLowerCase();
     const inputLength = inputValue.length;
   
@@ -122,15 +125,17 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
             page: 0,
             recordsPerPage: 10,
             filters: [],
-            suggestions: [],
-            suggestionText: '',
+            suggestions: {
+                options: [],
+                selectedIdx: -1,
+            },
         };
 
         this._tableManager = new InteractionManager();
 
         this.addTextFilter = this.addTextFilter.bind(this);
         this.deleteTextFilter = this.deleteTextFilter.bind(this);
-        this.updateSuggestionText = this.updateSuggestionText.bind(this);
+        this.updateSuggestionInput = this.updateSuggestionInput.bind(this);
     }
 
     /**
@@ -168,7 +173,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
     }
 
     private addTextFilter(chip: string) {
-        this.setState((state) => ({filters: state.filters.concat(chip), suggestionText: '', }))
+        this.setState((state) => ({filters: state.filters.concat(chip), suggestions: {...state.suggestions, selectedIdx: -1}, }))
     }
 
     private deleteTextFilter(chip: string, idx: number) {
@@ -179,7 +184,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
         });
     }
 
-    private updateSuggestionText(e: any) {
+    private updateSuggestionInput(e: any) {
         const { records } = this.props;
         const { filters } = this.state;
         const filterOptions = Array.from(new Set(
@@ -192,7 +197,8 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                 ]
             }, [])
         )).filter((filter) => filters.indexOf(filter) === -1);
-        this.setState({suggestions: getSuggestions(e.target.value, filterOptions)});
+        const input = e.target.value;
+        this.setState((state) => ({suggestions: {...state.suggestions, options: getSuggestionOptions(input, filterOptions)}}));
     }
 
     /**
@@ -266,7 +272,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
      */
     render() {
         const { classes, records } = this.props;
-        const { pinnedIdxs, expandedIdxs, sortBy, sortReverse, page, recordsPerPage, shownLevels, startDate, endDate, filters, suggestions, suggestionText } = this.state;
+        const { pinnedIdxs, expandedIdxs, sortBy, sortReverse, page, recordsPerPage, shownLevels, startDate, endDate, filters, suggestions } = this.state;
 
         const maxPages = Math.max(1, Math.ceil(records.length / recordsPerPage));
 
@@ -277,8 +283,6 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
             shownLoggers: filters.filter((filter) => filter.startsWith('logger:')).map((filter) => filter.replace('logger:', '')),
             shownFunctions: filters.filter((filter) => filter.startsWith('func:')).map((filter) => filter.replace('func:', '')),
         }
-        
-        // TODO: keyboard controls for autocomplete
 
         return (
             <div className={classes.root}>
@@ -357,18 +361,41 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                                 value={filters}
                                 onAdd={this.addTextFilter}
                                 onDelete={this.deleteTextFilter}
-                                onUpdateInput={this.updateSuggestionText}
+                                onUpdateInput={this.updateSuggestionInput}
                                 // when we click a suggestion, the chip input will blur, clearing the 
                                 // suggestions before the click is consumed. a timeout delays the clear.
-                                onBlur={() => setTimeout(() => this.setState({suggestions: []}), 100)}
+                                onBlur={() => setTimeout(() => this.setState((state) => ({suggestions: {options: [], selectedIdx: -1}})), 100)}
+                                onKeyDown={(e: any) => {
+                                    if (e.key === 'ArrowDown') {
+                                        if (suggestions.options.length > 0 && suggestions.selectedIdx < suggestions.options.length - 1) {
+                                            this.setState((state) => ({suggestions: {...state.suggestions, selectedIdx: suggestions.selectedIdx + 1}}));
+                                        }
+                                    }
+                                    if (e.key === 'ArrowUp') {
+                                        if (suggestions.options.length > 0 && suggestions.selectedIdx >= 0) {
+                                            this.setState((state) => ({suggestions: {...state.suggestions, selectedIdx: suggestions.selectedIdx - 1}}));
+                                        }
+                                    }
+                                    if (e.key === 'Enter') {
+                                        if (suggestions.options.length > 0 && suggestions.selectedIdx !== -1) {
+                                            this.addTextFilter(suggestions.options[suggestions.selectedIdx]);
+                                            this.setState((state) => ({suggestions: {...state.suggestions, options: []}}));
+                                            e.preventDefault();
+                                        }
+                                    }
+                                }}
                             />
                             {
-                                suggestions.length > 0 ? (
+                                suggestions.options.length > 0 ? (
                                     <Paper className={classes.suggestionsContainer}>
-                                        {suggestions.map((suggestion) => (
-                                            <MenuItem component="div" onClick={(e: any) => {
+                                        {suggestions.options.map((suggestion, idx) => (
+                                            <MenuItem 
+                                            key={suggestion} 
+                                            selected={suggestions.selectedIdx === idx}
+                                            component="div" 
+                                            onClick={(e: any) => {
                                                 this.addTextFilter(suggestion);
-                                                this.setState({suggestions: []});
+                                                this.setState((state) => ({suggestions: {...state.suggestions, options: []}}));
                                                 e.preventDefault();
                                             }}>{suggestion}</MenuItem>
                                         ))}
