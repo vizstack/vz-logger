@@ -1,13 +1,19 @@
 {
   "name": "vz-logger-frontend",
   "dependencies": {
+    "@date-io/date-fns": "latest",
     "@material-ui/core": "^4.3.2",
     "@material-ui/icons": "^4.2.1",
+    "@material-ui/pickers": "latest",
+    "@types/react-autosuggest": "^9.3.10",
     "clsx": "^1.0.4",
     "cuid": "^2.1.6",
+    "date-fns": "next",
+    "material-ui-chip-input": "^2.0.0-beta.1",
     "react": "^16.9.0",
+    "react-autosuggest": "^9.4.3",
     "react-dom": "^16.9.0",
-    "react-redux": "^7.1.0",
+    "react-redux": "^7.1.1",
     "react-scripts": "3.0.1",
     "redux": "^4.0.4",
     "redux-pack": "^0.1.5",
@@ -16,7 +22,7 @@
     "reselect": "^4.0.0",
     "seamless-immutable": "^7.1.4",
     "socket.io-client": "^2.2.0",
-    "typescript": "^3.5.3"
+    "typescript": "^3.6.2"
   },
   "devDependencies": {
     "@types/jest": "^24.0.18",

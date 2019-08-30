@@ -17,7 +17,8 @@ import LockOpenIcon from '@material-ui/icons/LockOpen';
 import LevelIcon from '@material-ui/icons/LayersOutlined';  // Layers
 import TimeIcon from '@material-ui/icons/Schedule';  // WatchLater
 
-import { Viewer } from '@vizstack/viewer';
+import { Text, Flow, Icon, Sequence, Token } from '@vizstack/js';
+import { InteractionProvider, InteractionManager, Viewer } from '@vizstack/viewer';
 
 import { Record } from '../../schema';
 import { AppState } from '../../store';
@@ -36,15 +37,14 @@ type RecordViewerProps = {
     /* Whether this row is currently being pinned in the table of log entries. */
     pinned: boolean,
 
-    /* A function which, when called, pins this row in the log entry table. */
-    pin: () => void,
+    togglePinned: () => void
 
-    /* A function which, when called, unpins this row in the log entry table. */
-    unpin: () => void,
+    expanded: boolean,
+
+    toggleExpanded: () => void,
 };
 
 type RecordViewerState = {
-    expanded: boolean,
 };
 
 class RecordViewer extends React.Component<RecordViewerProps & InternalProps, RecordViewerState> {
@@ -59,38 +59,40 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
      */
     constructor(props: RecordViewerProps & InternalProps) {
         super(props);
-        this.state = {
-            expanded: false,
-        };
+        this.state = {};
     }
 
     /**
      * Renderer.
      */
     render() {
-        const { classes, record, pinned, pin, unpin } = this.props;
+        const { classes, record, pinned, togglePinned, expanded, toggleExpanded } = this.props;
         const { timestamp, filePath, lineNumber, columnNumber, functionName, loggerName, level, tags, view } = record;
-
-        const { expanded } = this.state;
 
         const date = new Date(timestamp);
 
         return (
-            <Grid item container direction="row">
-                <Grid item container direction="column" className={classes.buttonGutter}>
+            <Grid container direction="row">
+                <Grid item container direction="column" className={clsx({
+                    [classes.buttonGutter]: true,
+                    [classes.buttonGutterDebug]: record.level === 'debug',
+                    [classes.buttonGutterInfo]: record.level === 'info',
+                    [classes.buttonGutterWarn]: record.level === 'warn',
+                    [classes.buttonGutterError]: record.level === 'error',
+                })}>
                     <Grid item>
                         {pinned ? (
                             <IconButton
                                 className={classes.button}
                                 aria-label="unlock"
-                                onClick={() => unpin()}>
+                                onClick={() => togglePinned()}>
                                 <LockIcon />
                             </IconButton>
                         ) : (
                             <IconButton
                                 className={classes.button}
                                 aria-label="lock"
-                                onClick={() => pin()}>
+                                onClick={() => togglePinned()}>
                                 <LockOpenIcon />
                             </IconButton>
                         )}
@@ -100,14 +102,14 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
                             <IconButton
                                 className={classes.button}
                                 aria-label="collapse"
-                                onClick={() => this.setState({expanded: false})}>
+                                onClick={() => toggleExpanded()}>
                                 <ExpandLessIcon />
                             </IconButton>
                         ) : (
                             <IconButton
                                 className={classes.button}
                                 aria-label="expand"
-                                onClick={() => this.setState({expanded: true})}>
+                                onClick={() => toggleExpanded()}>
                                 <ExpandMoreIcon />
                             </IconButton>
                         )}
@@ -120,17 +122,25 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
                     })}>
                         <Viewer view={view.asMutable({deep: true})} />
                     </Grid>
-                    <Grid item xs className={classes.metadata}>
+                    <Grid item xs>
+                    <Typography variant='caption' color='textSecondary'>
                         {`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} at ${date.getHours()}:${date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes()}:${date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds()}.${date.getMilliseconds()}`}
+                    </Typography>
                     </Grid>
-                    <Grid item xs className={classes.metadata}>
+                    <Grid item xs>
+                    <Typography variant='caption' color='textSecondary'>
                         {filePath}
+                    </Typography>
                     </Grid>
-                    <Grid item xs className={classes.metadata}>
+                    <Grid item xs>
+                    <Typography variant='caption' color='textSecondary'>
                         {lineNumber}
+                    </Typography>
                     </Grid>
-                    <Grid item xs className={classes.metadata}>
+                    <Grid item xs>
+                    <Typography variant='caption' color='textSecondary'>
                         {columnNumber}
+                    </Typography>
                     </Grid>
                 </Grid>
             </Grid>
@@ -141,7 +151,6 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
 const styles = (theme: Theme) =>
     createStyles({
         metadata: {
-            color: theme.color.grey.d2,
         },
         viewerBox: {
         },
@@ -154,6 +163,19 @@ const styles = (theme: Theme) =>
             height: '100%',
             textAlign: 'center',
             paddingTop: 10,
+            borderLeftStyle: 'solid',
+        },
+        buttonGutterDebug: {
+            borderColor: 'gray',
+        },
+        buttonGutterInfo: {
+            borderColor: 'blue',
+        },
+        buttonGutterWarn: {
+            borderColor: '#f5de0a',
+        },
+        buttonGutterError: {
+            borderColor: 'red',
         },
         button: {
         }

@@ -131,7 +131,7 @@ export class Logger {
                 filePath = f.fileName;
                 lineNumber = f.lineNumber;
                 columnNumber = f.columnNumber;
-                functionName = f.functionName;
+                functionName = f.functionName || "";
             }
         } catch(err) {}
 
@@ -154,7 +154,7 @@ export class Logger {
             loggerName: this._name,
             level: LogLevel[level].toLowerCase(),
             tags: [...this._tags, ...tags],
-            view: assemble(Flow(objects)),
+            view: assemble(objects.length === 1 ? objects[0] : Flow(...objects)),
         });
 
         console.log(record);  // TODO: Remove when figured out how to test properly.
