@@ -42,6 +42,8 @@ type RecordViewerProps = {
     expanded: boolean,
 
     toggleExpanded: () => void,
+
+    interactionManager: InteractionManager,
 };
 
 type RecordViewerState = {
@@ -53,6 +55,9 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
         // key: value,
     };
 
+    // TODO: currently we can't get the actual `Viewer` type, since `ViewerRoot` is exposed as `Viewer`.
+    _viewer: any = null;
+
     /**
      * Constructor.
      * @param props
@@ -60,13 +65,23 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
     constructor(props: RecordViewerProps & InternalProps) {
         super(props);
         this.state = {};
+
+        this.updateViewerRef = this.updateViewerRef.bind(this);
+    }
+
+    /**
+     * Updates the locally stored reference to the rendered `Viewer`.
+     * @param ref 
+     */
+    updateViewerRef(ref: any) {
+        this._viewer = ref;
     }
 
     /**
      * Renderer.
      */
     render() {
-        const { classes, record, pinned, togglePinned, expanded, toggleExpanded } = this.props;
+        const { classes, record, pinned, togglePinned, expanded, toggleExpanded, interactionManager } = this.props;
         const { timestamp, filePath, lineNumber, columnNumber, functionName, loggerName, level, tags, view } = record;
 
         const date = new Date(timestamp);
@@ -76,8 +91,10 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
                 <div className={clsx({
                     [classes.box]: true,
                     [classes.viewerBoxCollapsed]: !expanded, 
-                })}>
-                    <Viewer view={view.asMutable({deep: true})} />
+                })} tabIndex={0} onFocus={() => {
+                    interactionManager.emit('RecordViewer.DidFocus', {viewerId: this._viewer ? this._viewer.viewerId : null});
+                }}>
+                    <Viewer view={view.asMutable({deep: true})} ref={this.updateViewerRef} />
                 </div>
                 <div className={clsx(classes.box, classes.metadata)}>
                     <Grid item container direction="row" alignItems="center">
@@ -91,6 +108,7 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
                                 <IconButton
                                     className={classes.button}
                                     aria-label="unlock"
+                                    tabIndex={-1} // Disable "tabbing" to this button so that we can tab from one row right to the next.
                                     onClick={() => togglePinned()}>
                                     <LockIcon className={classes.icon} />
                                 </IconButton>
@@ -98,6 +116,7 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
                                 <IconButton
                                     className={classes.button}
                                     aria-label="lock"
+                                    tabIndex={-1}
                                     onClick={() => togglePinned()}>
                                     <LockOpenIcon className={classes.icon} />
                                 </IconButton>
@@ -108,6 +127,7 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
                                 <IconButton
                                     className={classes.button}
                                     aria-label="collapse"
+                                    tabIndex={-1}
                                     onClick={() => toggleExpanded()}>
                                     <ExpandLessIcon className={classes.icon} />
                                 </IconButton>
@@ -115,6 +135,7 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
                                 <IconButton
                                     className={classes.button}
                                     aria-label="expand"
+                                    tabIndex={-1}
                                     onClick={() => toggleExpanded()}>
                                     <ExpandMoreIcon className={classes.icon} />
                                 </IconButton>

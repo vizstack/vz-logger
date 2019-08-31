@@ -31,7 +31,6 @@ import LevelIcon from '@material-ui/icons/LayersOutlined';  // Layers
 import TimeIcon from '@material-ui/icons/Schedule';  // WatchLater
 
 import ChipInput from 'material-ui-chip-input';
-import Autosuggest from 'react-autosuggest';
 import Paper from '@material-ui/core/Paper';
 
 import { DateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
@@ -132,6 +131,12 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
         };
 
         this._tableManager = new InteractionManager();
+        this._tableManager.on('RecordViewer.DidFocus', (all, msg, global) => {
+            all.viewerId(global.selected).forEach((viewer) => viewer.appearance.doSetLight('normal'));
+            global.prevSelected = global.selected;
+            global.selected = msg.viewerId;
+            all.viewerId(global.selected).forEach((viewer) => viewer.appearance.doSetLight('selected'));
+        })
 
         this.addTextFilter = this.addTextFilter.bind(this);
         this.deleteTextFilter = this.deleteTextFilter.bind(this);
@@ -242,6 +247,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                 key={record.timestamp}
                 record={record}
                 pinned={pinnedIdxs.has(idx)}
+                interactionManager={this._tableManager}
                 togglePinned={() => this.setState((state) => {
                     const pinnedIdxs = new Set(state.pinnedIdxs);
                     if (pinnedIdxs.has(idx)) {
