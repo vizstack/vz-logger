@@ -22,6 +22,9 @@ coverage.xml
 docs/_build/
 python/docs/_build
 
+# dotenv
+*.env
+
 # virtualenv
 .venv
 venv/

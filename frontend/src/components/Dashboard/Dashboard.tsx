@@ -8,7 +8,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { createSelector } from 'reselect';
 
 import GridComponent from '@material-ui/core/Grid';
-import List from '@material-ui/core/List';
+
 import Checkbox from '@material-ui/core/Checkbox';
 import Button from '@material-ui/core/Button';
 import Select from '@material-ui/core/Select';
@@ -18,14 +18,20 @@ import FormGroup from '@material-ui/core/FormGroup';
 import FormControl from '@material-ui/core/FormControl';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import MenuItem from '@material-ui/core/MenuItem';
-import ListSubheader from '@material-ui/core/ListSubheader';
+
+import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
+
+import Slider from '@material-ui/core/Slider';
+
+import ListSubheader from '@material-ui/core/ListSubheader';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 import CheckBoxIcon from '@material-ui/icons/CheckBox';
 import CheckBoxOutlineBlankIcon from '@material-ui/icons/CheckBoxOutlineBlank';
+
 import TagsIcon from '@material-ui/icons/LabelOutlined';
 import LevelIcon from '@material-ui/icons/LayersOutlined';  // Layers
 import TimeIcon from '@material-ui/icons/Schedule';  // WatchLater
@@ -44,8 +50,9 @@ import { Record as RecordSchema } from '../../schema';
 
 import { AppState } from '../../store';
 import * as dashboard from '../../store/dashboard';
+import { flexbox } from '@material-ui/system';
 
-/* This smart component is the main dashboard view of the logger interface that allows exploration
+/** This smart component is the main dashboard view of the logger interface that allows exploration
  * and filtering of log records streamed from the various program clients. */
 
 type DashboardProps = {
@@ -57,32 +64,46 @@ type DashboardProps = {
 type SortKey = keyof RecordSchema;
 
 type DashboardState = {
-    /* Records which are pinned to the dashboard; identified by their index in the record table. */
+    /** Records which are pinned to the dashboard; identified by their index in the record table. */
     pinnedIdxs: Set<number>,
-    /* Records which are showing their full Viewer regardless of size; identified by their index
-    in the record table.*/
+    
+    /** Records which are showing their full Viewer regardless of size; identified by their index
+    in the record table. */
     expandedIdxs: Set<number>,
-    /* The key currently being used to sort the table. */
+    
+    /** The key currently being used to sort the table. */
     sortBy: SortKey,
-    /* Whether the table should be sorted from greatest to least value of `sortBy`. */
+    
+    /** Whether the table should be sorted from greatest to least value of `sortBy`. */
     sortReverse: boolean,
-    /* A list of filtered levels; a record can only be shown if its level is in the list or the list is empty. */
+    
+    /** A list of filtered levels; a record can only be shown if its level is in the list or the list is empty. */
     shownLevels: string[],
-    /* A minimum timestamp that all shown records must have, or null if there is no lower bound. */
-    startDate: Date | null,
-    /* A maximum timestamp that all shown records must have, or null if there is no upper bound. */
-    endDate: Date | null,
-    /* Which page of records the dashboard is currently showing; 0-indexed. */
+    
+    /** Epoch time (in ms) at which this Dashboard was opened. */
+    creationTime: number,
+
+    /** A minimum timestamp that all shown records must have, or null if there is no lower bound. */
+    filterTimeStart?: number,
+    
+    /** A maximum timestamp that all shown records must have, or null if there is no upper bound. */
+    filterTimeEnd?: number,
+    
+    /** Which page of records the dashboard is currently showing; 0-indexed. */
     page: number,
-    /* How many records should be shown on each page. */
+    
+    /** How many records should be shown on each page. */
     recordsPerPage: number,
-    /* Filters currently being applied to the record table, of the form `${type}:${name}. */
+    
+    /** Filters currently being applied to the record table, of the form `${type}:${name}. */
     filters: string[],
-    /* Values needed to show and select filter suggestions. */
+    
+    /** Values needed to show and select filter suggestions. */
     suggestions: {
-        /* The current filter strings to be suggested. */
+        /** The current filter strings to be suggested. */
         options: string[],
-        /* The index of the currently hovered option in `options`, or -1 if none is selected. */
+        
+        /** The index of the currently hovered option in `options`, or -1 if none is selected. */
         selectedIdx: number,
     }
 };
@@ -99,18 +120,11 @@ const getSuggestionOptions = (value: string, options: string[]) => {
     );
 };
 
+const kSliderStep = 1000;
+
 class Dashboard extends React.Component<DashboardProps & InternalProps, DashboardState> {
-    /* Prop default values. */
-    static defaultProps = {
-        // key: value,
-    };
+    private _tableManager: InteractionManager;
 
-    _tableManager: InteractionManager;
-
-    /**
-     * Constructor.
-     * @param props
-     */
     constructor(props: DashboardProps & InternalProps) {
         super(props);
         this.state = {
@@ -119,8 +133,9 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
             sortBy: 'timestamp',
             sortReverse: false,
             shownLevels: [],
-            startDate: null,
-            endDate: null,
+            creationTime: Date.now(),
+            filterTimeStart: undefined,
+            filterTimeEnd: undefined,
             page: 0,
             recordsPerPage: 10,
             filters: [],
@@ -218,15 +233,14 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
         shownLoggers: string[],
         shownFunctions: string[],
     }) {
-        const { pinnedIdxs, expandedIdxs, endDate, startDate, sortBy, sortReverse } = this.state;
+        const { pinnedIdxs, expandedIdxs, filterTimeEnd, filterTimeStart, sortBy, sortReverse } = this.state;
         const { shownTags, shownLevels, shownFiles, shownLoggers, shownFunctions } = filterCollections;
 
         return records.map((record, idx) => ({record, idx}))
         .filter(({idx}) => pinned ? pinnedIdxs.has(idx) : !pinnedIdxs.has(idx))
         .filter(({record}) => {
-            const { startDate, endDate } = this.state;
-            return (startDate === null || startDate.getTime() < record.timestamp) && 
-            (endDate === null || endDate.getTime() > record.timestamp) && 
+            return (filterTimeStart === undefined || filterTimeStart < record.timestamp) && 
+            (filterTimeEnd === undefined || filterTimeEnd > record.timestamp) && 
             (shownTags.length === 0 || shownTags.some((tag) => record.tags.indexOf(tag) !== -1)) &&
             (shownLevels.length === 0 || shownLevels.indexOf(record.level) !== -1) &&
             (shownFiles.length === 0 || shownFiles.indexOf(record.filePath) !== -1) &&
@@ -278,7 +292,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
      */
     render() {
         const { classes, records } = this.props;
-        const { pinnedIdxs, expandedIdxs, sortBy, sortReverse, page, recordsPerPage, shownLevels, startDate, endDate, filters, suggestions } = this.state;
+        const { pinnedIdxs, expandedIdxs, sortBy, sortReverse, page, recordsPerPage, shownLevels, creationTime, filterTimeStart, filterTimeEnd, filters, suggestions } = this.state;
 
         const maxPages = Math.max(1, Math.ceil(records.length / recordsPerPage));
 
@@ -290,52 +304,84 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
             shownFunctions: filters.filter((filter) => filter.startsWith('func:')).map((filter) => filter.replace('func:', '')),
         }
 
+        let sliderMin, sliderMax, sliderValue;
+        if(records.length === 0) {
+            // When no records, display dummy slider.
+            sliderMin = 0;
+            sliderMax = kSliderStep;
+            sliderValue = [sliderMin, sliderMax];
+        } else {
+            // When have records, display slider between timestamp bounds, unless manually changed.
+            sliderMin = records[0].timestamp;
+            sliderMax = records[records.length-1].timestamp;
+            sliderValue = [filterTimeStart || sliderMin, filterTimeEnd || sliderMax];
+        }
+        
+
         return (
             <div className={classes.root}>
                 {/* Sidebar ==================================================================== */}
                 <div className={classes.sidebar}>
-                    <Typography variant='h4' gutterBottom>
-                        vz-logger
-                    </Typography>
+                    <Typography variant='h3' gutterBottom>vz-logger</Typography>
                     {/* Level ------------------------------------------------------------------ */}
-                    <div className={classes.filterList}>
-                        <div className={classes.subtitleWithIcon}>
+                    <div className={classes.sidebarBox}>
+                        <div className={classes.sidebarIconHeading}>
                             <LevelIcon className={classes.icon}/>
-                            <Typography variant='subtitle2'>Level</Typography>
+                            <span>Level</span>
                         </div>
+                        <List>
                         {['debug', 'info', 'warn', 'error'].map((level) => (
-                        <FormControlLabel
-                            key={level}
-                            control={
-                            <Checkbox 
-                            checked={shownLevels.indexOf(level) !== -1} 
-                            onChange={() => this.toggleLevelFilter(level)} 
-                            value={`${level}-checked`} />
-                            }
-                            label={(
-                                <span>
-                                    <Typography display='inline' className={clsx({
-                                        [classes.levelFilterText]: true,
-                                        [classes.debug]: level === 'debug',
-                                        [classes.info]: level === 'info',
-                                        [classes.warn]: level === 'warn',
-                                        [classes.error]: level === 'error',
-                                    })}>{level}</Typography>
-                                    <div className={classes.filterSpacer} />
-                                    <Typography display='inline' variant='caption' color='textSecondary'>{`${records.reduce((prev, record) => record.level === level ? prev + 1 : prev, 0)}`}</Typography>
+                            <ListItem key={level} disableGutters>
+                                    <Checkbox 
+                                        checked={shownLevels.indexOf(level) !== -1} 
+                                        onChange={() => this.toggleLevelFilter(level)} 
+                                        value={`${level}-checked`} />
+                                <span className={classes.levelFilterContainer}>
+                                    <div className={clsx({
+                                        [classes.levelFilterSwatch]: true,
+                                        [classes.levelFilterSwatchDebug]: level === 'debug',
+                                        [classes.levelFilterSwatchInfo]: level === 'info',
+                                        [classes.levelFilterSwatchWarn]: level === 'warn',
+                                        [classes.levelFilterSwatchError]: level === 'error',
+                                    })}></div>
+                                    <span className={classes.levelFilterLabel}>{level}</span>
+                                    <span className={classes.levelFilterCaption}>{`${records.reduce((prev, record) => record.level === level ? prev + 1 : prev, 0).toLocaleString()}`}</span>
                                 </span>
-                            )}
-                        />
+                                
+                            </ListItem> 
                         ))}
+                        </List>
+                        
                     </div>
-                    <div className={classes.spacer}/>
+                    <div className={classes.sidebarSpacer}/>
                     {/* Time ------------------------------------------------------------------- */}
-                    <div className={classes.filterList}>
-                        <div className={classes.subtitleWithIcon}>
+                    <div className={classes.sidebarBox}>
+                        <div className={classes.sidebarIconHeading}>
                             <TimeIcon className={classes.icon}/>
-                            <Typography variant='subtitle2'>Time</Typography>
+                            <span>Time</span>
                         </div>
-                        <MuiPickersUtilsProvider utils={DateFnUtils}>
+                        <Slider
+                            value={sliderValue}
+                            step={kSliderStep}
+                            min={records.length == 0 ? 0 : sliderMin}
+                            max={records.length == 0 ? kSliderStep : sliderMax}
+                            valueLabelDisplay="off"
+                            onChange={(e, value) => this.setState({
+                                filterTimeStart: (value as [number, number])[0],
+                                filterTimeEnd: (value as [number, number])[1],
+                            })}
+                            disabled={records.length === 0}
+                        />
+                        <div className={classes.timeFilterContainer}>
+                            <div style={{ textAlign: 'left '} as any}>
+                            {(new Date(records.length === 0 ? creationTime : sliderValue[0])).toLocaleString().split(', ').map((text) => <div>{text}</div>)}
+                            </div>
+                            <div style={{ textAlign: 'right '} as any}>
+                                {(new Date(records.length === 0 ? creationTime : sliderValue[1])).toLocaleString().split(', ').map((text) => <div>{text}</div>)}
+                            </div>
+                            
+                        </div>
+                        {/* <MuiPickersUtilsProvider utils={DateFnUtils}>
                             <DateTimePicker
                             clearable
                             autoOk
@@ -354,7 +400,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                             value={endDate}
                             onChange={(newDate: Date | null) => this.setState({endDate: newDate})}
                             />
-                        </MuiPickersUtilsProvider>
+                        </MuiPickersUtilsProvider> */}
                     </div>
                 </div>
                 {/* Canvas ===================================================================== */}
@@ -468,18 +514,17 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
     }
 }
 
-// {records.map((record) => <p key={record.timestamp}>{JSON.stringify(record)}</p>)}
-
 const styles = (theme: Theme) =>
     createStyles({
         root: {
             flexGrow: 1,
-            height: 'calc(100vh - 32px)',
+            alignSelf: 'stretch',
             display: 'flex',
             margin: theme.scale(16),
         },
         sidebar: {
-            minWidth: theme.scale(256),
+            minWidth: 200,
+            marginRight: theme.scale(16),
             overflow: 'auto',
         },
         canvas: {
@@ -490,13 +535,75 @@ const styles = (theme: Theme) =>
             display: 'flex',
             flexDirection: 'column',
         },
-        filterBar: {
-            width: '100%',
-        },
-        filterList: {
+        sidebarBox: {
+            backgroundColor: theme.color.white,
+            borderRadius: theme.shape.borderRadius,
+            padding: theme.scale(16),
+
             display: 'flex',
             flexDirection: 'column',
         },
+        sidebarSpacer: {
+            height: theme.scale(32),
+        },
+        sidebarIconHeading: {
+            display: 'flex',
+            alignItems: 'center',
+            userSelect: 'none',
+            ...theme.vars.text.subheading,
+        },
+        icon: {
+            marginRight: theme.scale(8),
+        },
+
+        levelFilterContainer: {
+            flexGrow: 1,
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'stretch',
+        },
+        levelFilterSwatch: {
+            width: theme.scale(6),
+            borderRadius: theme.scale(2),
+            marginLeft: theme.scale(2),
+            marginRight: theme.scale(8),
+        },
+        levelFilterSwatchDebug: {
+            backgroundColor: theme.vars.fills.gray,
+        },
+        levelFilterSwatchInfo: {
+            backgroundColor: theme.vars.fills.blue,
+        },
+        levelFilterSwatchWarn: {
+            backgroundColor: theme.vars.fills.yellow,
+        },
+        levelFilterSwatchError: {
+            backgroundColor: theme.vars.fills.red,
+        },
+        levelFilterLabel: {
+            ...theme.vars.text.body,
+            marginRight: theme.scale(8),
+        },
+        levelFilterCaption: {
+            ...theme.vars.text.caption,
+            color: theme.vars.emphasis.less,
+            flexGrow: 1,
+            alignSelf: 'flex-end',
+            textAlign: 'right',
+        },
+        
+        timeFilterContainer: {
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            ...theme.vars.text.caption,
+            color: theme.vars.emphasis.less,
+        },
+
+        filterBar: {
+            width: '100%',
+        },
+        
         filterContainer: {
             position: 'relative',
             width: '100%',
@@ -509,47 +616,10 @@ const styles = (theme: Theme) =>
             right: 0,
             zIndex: 1
         },
-        levelFilterText: {
-            paddingLeft: 5,
-            borderLeftStyle: 'solid',
-        },
-        debug: {
-            borderColor: 'gray',
-        },
-        info: {
-            borderColor: 'blue',
-        },
-        warn: {
-            borderColor: '#f5de0a',
-        },
-        error: {
-            borderColor: 'red',
-        },
-        subtitleWithIcon: {
-            display: 'flex',
-            alignItems: 'center',
-            userSelect: 'none',
-        },
-        icon: {
-            marginRight: theme.scale(8),
-        },
-        spacer: {
-            height: theme.scale(32),
-        },
-        filterSpacer: {
-            width: theme.scale(8),
-            display: 'inline-block',
-        },
-        header: {
-            display: 'flex',
-            alignItems: 'center',
-        },
-        headerText: {
-            flexGrow: 1,
-        },
-        headerIcon: {
-            marginRight: '10px',
-        },
+        
+        
+        
+        
         buttonGutter: {
             width: '50px',
         },

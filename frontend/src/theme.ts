@@ -1,81 +1,35 @@
+/**
+ * This file defines a CSS-in-JS custom theme object to define visual properties (fonts,
+ * colors, spacing, etc.). It extends the built-in options provided by Material UI with
+ * general-purpose variables as well as domain-specific (semantically meaningful) variables.
+ */
+import 'typeface-ubuntu-mono';
 import { createMuiTheme } from '@material-ui/core/styles';
+import { LightTheme } from '@vizstack/viewer';
 
-/* CSS-in-JS custom theme object to set visual properties (fonts, colors, spacing, etc.) */
 type Color = string;
 type Color5 = { l2: Color; l1: Color; base: Color; d1: Color; d2: Color };
 type Color7 = { l3: Color; d3: Color } & Color5;
-type ScaleValues =
-    | 0
-    | 1
-    | 2
-    | 4
-    | 6
-    | 8
-    | 12
-    | 16
-    | 24
-    | 32
-    | 48
-    | 64
-    | 96
-    | 128
-    | 192
-    | 256
-    | 384
-    | 512
-    | 640
-    | 768
-    | 1024
-    | 1280
-    | 1536
-    | 1792
-    | 2048;
-type AdditionalOptions = {
+
+const general: {
     color: {
         white: Color;
-        grey: Color7;
+        black: Color;
+        gray: Color7;
         blue: Color5;
         teal: Color5;
         green: Color5;
         yellow: Color5;
         red: Color5;
     };
-    scale: (value: ScaleValues) => ScaleValues;
-};
-
-// Extend default Material UI defined configuration options.
-declare module '@material-ui/core/styles/createMuiTheme' {
-    interface Theme extends AdditionalOptions {}
-    interface ThemeOptions extends AdditionalOptions {}
-}
-
-export default createMuiTheme({
-    typography: {
-        h1: { fontWeight: 300 }, // Grabber.
-        h2: { fontWeight: 400 }, // Page title.
-        h3: { fontWeight: 400 }, // App title.
-        h4: { fontWeight: 500 }, // Page section heading.
-        h5: { fontWeight: 500 }, // Page section subheading.
-        h6: { fontWeight: 500 }, // App section heading.
-        // subtitle1 = Page subtitle.
-        // subtitle2 = App label.
-        // body1 = Page body.
-        // body2 = App body.
-    },
-    palette: {
-        primary: {
-            main: '#3183C8', // Same as blue.base.
-        },
-        secondary: {
-            main: '#3CAEA3', // Same as teal.base.
-        },
-        error: {
-            main: '#DC3030', // Same as red.base.
-        },
-    },
+    // prettier-ignore
+    scale: (value: 0 | 1 | 2 | 4 | 6 | 8 | 10 | 12 | 14 | 16 |24 | 32 | 48 | 64 | 96 | 128 | 192
+        | 256 | 384 | 512 | 640 | 768 | 1024 | 1280 | 1536 | 1792 | 2048) => number;
+} = {
     color: {
         white: '#FFFFFF',
-        grey: {
+        black: '#000000',
+        gray: {
             l3: '#F8F9FA',
             l2: '#F1F3F5',
             l1: '#E9ECEE',
@@ -120,20 +74,84 @@ export default createMuiTheme({
             d2: '#881B1B',
         },
     },
+    scale: (value) => value,
+};
+
+// =================================================================================================
+
+const specific = {
+    vars: {
+        ...LightTheme,
+    },
+};
+
+// =================================================================================================
+
+const fontFamily = '"Ubuntu Mono", "Courier New", monospace';
+const builtin = {
+    typography: {
+        h1: { fontWeight: 300, fontFamily }, // Grabber.
+        h2: { fontWeight: 400, fontFamily }, // Page title.
+        h3: { fontWeight: 400, fontFamily }, // App title.
+        h4: { fontWeight: 500, fontFamily }, // Page section heading.
+        h5: { fontWeight: 500, fontFamily }, // Page section subheading.
+        h6: { fontWeight: 500, fontFamily }, // App section heading.
+        subtitle1: { fontFamily }, // Page subtitle.
+        subtitle2: { fontFamily }, // App label.
+        body1: { fontFamily }, // Page body.
+        body2: { fontFamily }, // App body.
+    },
+    palette: {
+        primary: {
+            main: general.color.blue.base,
+        },
+        secondary: {
+            main: general.color.blue.base,
+        },
+        error: {
+            main: general.color.red.base,
+        },
+    },
+    shape: {
+        borderRadius: 8,
+    },
     spacing: 4,
-    scale: (value: ScaleValues) => value,
     overrides: {
         MuiIconButton: {
             root: {
-                height: 24,
-                width: 24,
+                height: 10,
+                width: 10,
                 color: 'inherit',
             },
         },
         MuiSvgIcon: {
             root: {
-                fontSize: 16,
+                fontSize: 18,
             },
         },
+        MuiList: {
+            padding: {
+                paddingTop: 0,
+                paddingBottom: 0,
+            }
+        },
+        MuiListItem: {
+            root: {
+                paddingTop: 0,
+                paddingBottom: 0,
+            }
+        }
     },
+};
+
+type ThemeExtensions = typeof general & typeof specific;
+declare module '@material-ui/core/styles/createMuiTheme' {
+    interface Theme extends ThemeExtensions {}
+    interface ThemeOptions extends ThemeExtensions {}
+}
+
+export default createMuiTheme({
+    ...builtin,
+    ...general,
+    ...specific,
 });
