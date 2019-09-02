@@ -1,7 +1,6 @@
 import sys
 import json
 import time
-import threading
 from typing import Optional, Any, Tuple, Mapping, Sequence
 from inspect import currentframe, getframeinfo
 from types import FrameType
@@ -39,6 +38,8 @@ class Connection:
         global _client
         _client = socketio.Client()
         _client.connect(url, namespaces=['/program'])
+        # See `disconnect()` for explanation.
+        _client.on('ServerApproveDisconnect', _client.disconnect, namespace='/program')
 
     def __enter__(self):
         pass
@@ -54,7 +55,13 @@ def connect(url: str = 'http://localhost:4000'):
 def disconnect():
     global _client
     if _client is not None:
-        _client.disconnect()
+        # Attempting to call `_client.disconnect()` directly here causes issues if the server
+        # has not consumed every log message yet. Unconsumed log messages never get consumed,
+        # and the disconnect will not be registered by the server, causing the program to hang.
+        # Instead, we send a special message to the server; when it receives it, it sends a special
+        # message back, at which point a handler on the client allows it to finally and safely 
+        # disconnect.
+        _client.emit('ProgramRequestDisconnect', namespace='/program')
         _client = None
 
 
@@ -155,7 +162,7 @@ class Logger:
             'loggerName': self._name,
             'level': _level_to_name[level],
             'tags': self._tags + tags,
-            'view': assemble(Flow(*objects)),
+            'view': assemble(objects[0] if len(objects) == 1 else Flow(*objects)),
         })
 
         # TODO: Deal with msg (format string, etc.)
@@ -165,18 +172,13 @@ class Logger:
         if _client is not None:
             _client.emit('ProgramToServer', record, namespace='/program')
 
-# Mutex to protect the logger creation when multi-threading.
-_lock = threading.RLock()
-
 # Map from names to the Logger objects, so that Loggers can be recycled.
 _loggers: Mapping[str, Logger] = dict()
 
 def get_logger(name: str) -> Logger:
     """Returns the Logger associated with the given name, creating it if it does not already exist."""
     name = str(name)
-    _lock.acquire()
     if name not in _loggers:
         _loggers[name] = Logger(name)
     logger = _loggers[name]
-    _lock.release()
     return logger

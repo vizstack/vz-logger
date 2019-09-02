@@ -55,6 +55,15 @@ program.on('connect', (socket) => {
         frontend.emit('ServerToFrontend', msg);
         // TODO: append to file on disk (must be thread-safe)
     });
+
+    // Some clients will experience issues if they attempt to disconnect before 
+    // the server has finished processing its messages. Those clients, when 
+    // seeking to disconnect, will instead send "ProgramRequestDisconnect", 
+    // to which the server will reply and tell the client that all messages have
+    // been consumed and it may safely disconnect.
+    socket.on('ProgramRequestDisconnect', () => {
+        socket.emit('ServerApproveDisconnect');
+    })
 });
 
 /**

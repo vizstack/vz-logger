@@ -147,10 +147,14 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
 
         this._tableManager = new InteractionManager();
         this._tableManager.on('RecordViewer.DidFocus', (all, msg, global) => {
-            all.viewerId(global.selected).forEach((viewer) => viewer.appearance.doSetLight('normal'));
-            global.prevSelected = global.selected;
-            global.selected = msg.viewerId;
-            all.viewerId(global.selected).forEach((viewer) => viewer.appearance.doSetLight('selected'));
+            // Only select the viewer if it's not being hovered; otherwise, clicking directly on the 
+            // viewer would cause it to select here, then in the click handler unselect
+            if (msg.viewerId && global.selected !== msg.viewerId && global.hovered !== msg.viewerId) {
+                all.viewerId(global.selected).forEach((viewer) => viewer.appearance.doSetLight('normal'));
+                global.prevSelected = global.selected;
+                global.selected = msg.viewerId;
+                all.viewerId(global.selected).forEach((viewer) => viewer.appearance.doSetLight('selected'));
+            }
         })
 
         this.addTextFilter = this.addTextFilter.bind(this);
@@ -177,23 +181,29 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
             const filterIndex = state.shownLevels.indexOf(level);
             if (filterIndex === -1) {
                 newFilters.push(level);
-                return {
-                    ...state,
-                    shownLevels: newFilters,
-                }
             }
             else {
                 newFilters.splice(filterIndex, 1);
-                return {
-                    ...state,
-                    shownLevels: newFilters,
-                }
+            }
+            return {
+                ...state,
+                shownLevels: newFilters,
+                // If the current page would be more than the new number of pages, go to the max possible page
+                page: Math.min(state.page, Math.max(0, Math.ceil(this.getShownRecords({shownLevels: newFilters}).length / state.recordsPerPage - 1))),
             }
         });
     }
 
     private addTextFilter(chip: string) {
-        this.setState((state) => ({filters: state.filters.concat(chip), suggestions: {...state.suggestions, selectedIdx: -1}, }))
+        this.setState((state) => {
+            const filters = state.filters.concat(chip);
+            return {
+                filters, 
+                suggestions: {...state.suggestions, selectedIdx: -1}, 
+                // If the current page would be more than the new number of pages, go to the max possible page
+                page: Math.min(state.page, Math.max(0, Math.ceil(this.getShownRecords({textFilters: filters}).length / state.recordsPerPage - 1))),
+            }
+        })
     }
 
     private deleteTextFilter(chip: string, idx: number) {
@@ -226,27 +236,12 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
      * @param record 
      * @param idx: The index of the record in the record table.
      */
-    private getRecordViewers(records: ImmutableObject<RecordSchema>[], pinned: boolean, filterCollections: {
-        shownTags: string[],
-        shownLevels: string[],
-        shownFiles: string[],
-        shownLoggers: string[],
-        shownFunctions: string[],
-    }) {
-        const { pinnedIdxs, expandedIdxs, filterTimeEnd, filterTimeStart, sortBy, sortReverse } = this.state;
-        const { shownTags, shownLevels, shownFiles, shownLoggers, shownFunctions } = filterCollections;
+    private getRecordViewers(records: ImmutableObject<RecordSchema>[], pinned: boolean) {
+        const { pinnedIdxs, expandedIdxs, sortBy, sortReverse, page, recordsPerPage } = this.state;
 
         return records.map((record, idx) => ({record, idx}))
-        .filter(({idx}) => pinned ? pinnedIdxs.has(idx) : !pinnedIdxs.has(idx))
-        .filter(({record}) => {
-            return (filterTimeStart === undefined || filterTimeStart < record.timestamp) && 
-            (filterTimeEnd === undefined || filterTimeEnd > record.timestamp) && 
-            (shownTags.length === 0 || shownTags.some((tag) => record.tags.indexOf(tag) !== -1)) &&
-            (shownLevels.length === 0 || shownLevels.indexOf(record.level) !== -1) &&
-            (shownFiles.length === 0 || shownFiles.indexOf(record.filePath) !== -1) &&
-            (shownLoggers.length === 0 || shownLoggers.indexOf(record.loggerName) !== -1) &&
-            (shownFunctions.length === 0 || shownFunctions.indexOf(record.functionName) !== -1)
-        })
+        .filter(({idx}) => pinned ? pinnedIdxs.has(idx) : (
+            !pinnedIdxs.has(idx) && idx >= recordsPerPage * page && idx < recordsPerPage * (page + 1)))
         .sort((r1, r2) => {
             if (r1.record[sortBy] < r2.record[sortBy]) {
                 return sortReverse ? 1 : -1;
@@ -258,7 +253,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
         })
         .map(({record, idx}) => (
             <RecordViewer
-                key={record.timestamp}
+                key={`${record.timestamp}:${idx}`}
                 record={record}
                 pinned={pinnedIdxs.has(idx)}
                 interactionManager={this._tableManager}
@@ -288,21 +283,50 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
     }
 
     /**
+     * Get all of the records that would be a shown under a given set of filters.
+     * @param filterOverrides Filter values to use to determine which records are shown. Undefined values will use the Dashboard's current state.
+     */
+    private getShownRecords(filterOverrides: {
+        textFilters?: string[],
+        shownLevels?: string[],
+        filterTimeStart?: Date,
+        filterTimeEnd?: Date
+    } = {}) {
+        const { records } = this.props;
+
+        const {
+            filterTimeStart = this.state.filterTimeStart,
+            filterTimeEnd = this.state.filterTimeEnd,
+            shownLevels = this.state.shownLevels,
+            textFilters = this.state.filters,
+        } = filterOverrides;
+
+        const shownTags = textFilters.filter((filter) => filter.startsWith('tag:')).map((filter) => filter.replace('tag:', ''));
+        const shownFiles = textFilters.filter((filter) => filter.startsWith('file:')).map((filter) => filter.replace('file:', ''));
+        const shownLoggers = textFilters.filter((filter) => filter.startsWith('logger:')).map((filter) => filter.replace('logger:', ''));
+        const shownFunctions = textFilters.filter((filter) => filter.startsWith('func:')).map((filter) => filter.replace('func:', ''));
+
+        return records.filter((record) => {
+            return (filterTimeStart === undefined || filterTimeStart < record.timestamp) && 
+            (filterTimeEnd === undefined || filterTimeEnd > record.timestamp) && 
+            (shownTags.length === 0 || shownTags.some((tag) => record.tags.indexOf(tag) !== -1)) &&
+            (shownLevels.length === 0 || shownLevels.indexOf(record.level) !== -1) &&
+            (shownFiles.length === 0 || shownFiles.indexOf(record.filePath) !== -1) &&
+            (shownLoggers.length === 0 || shownLoggers.indexOf(record.loggerName) !== -1) &&
+            (shownFunctions.length === 0 || shownFunctions.indexOf(record.functionName) !== -1)
+        });
+    }
+
+    /**
      * Renderer.
      */
     render() {
         const { classes, records } = this.props;
-        const { pinnedIdxs, expandedIdxs, sortBy, sortReverse, page, recordsPerPage, shownLevels, creationTime, filterTimeStart, filterTimeEnd, filters, suggestions } = this.state;
+        const { sortReverse, page, recordsPerPage, shownLevels, creationTime, filterTimeStart, filterTimeEnd, filters, suggestions } = this.state;
 
-        const maxPages = Math.max(1, Math.ceil(records.length / recordsPerPage));
+        const shownRecords = this.getShownRecords();
 
-        const filterCollections = {
-            shownLevels,
-            shownTags: filters.filter((filter) => filter.startsWith('tag:')).map((filter) => filter.replace('tag:', '')),
-            shownFiles: filters.filter((filter) => filter.startsWith('file:')).map((filter) => filter.replace('file:', '')),
-            shownLoggers: filters.filter((filter) => filter.startsWith('logger:')).map((filter) => filter.replace('logger:', '')),
-            shownFunctions: filters.filter((filter) => filter.startsWith('func:')).map((filter) => filter.replace('func:', '')),
-        }
+        const maxPages = Math.max(1, Math.ceil(shownRecords.length / recordsPerPage));
 
         let sliderMin, sliderMax, sliderValue;
         if(records.length === 0) {
@@ -457,9 +481,9 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                         </div>
                     </GridComponent>
                     <InteractionProvider manager={this._tableManager}>
-                        {this.getRecordViewers(records, true, filterCollections)}
+                        {this.getRecordViewers(shownRecords, true)}
                         <div className={classes.recordList}>
-                            {this.getRecordViewers(records, false, filterCollections)}
+                            {this.getRecordViewers(shownRecords, false)}
                         </div>
                     </InteractionProvider>
                     <div className={classes.pageBar}>
@@ -495,7 +519,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                                 recordsPerPage: event.target.value as number,
                                 // If the new value causes there to be fewer pages than the current page,
                                 // set the new page to be the new value of `maxPages`
-                                page: Math.min(page, Math.max(0, Math.ceil(records.length / (event.target.value as number) - 1)))
+                                page: Math.min(page, Math.max(0, Math.ceil(shownRecords.length / (event.target.value as number) - 1)))
                             })}
                             inputProps={{
                                 name: 'perpage',
