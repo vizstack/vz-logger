@@ -24,13 +24,9 @@ import ListItem from '@material-ui/core/ListItem';
 
 import Slider from '@material-ui/core/Slider';
 
-import ListSubheader from '@material-ui/core/ListSubheader';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
-import CheckBoxIcon from '@material-ui/icons/CheckBox';
-import CheckBoxOutlineBlankIcon from '@material-ui/icons/CheckBoxOutlineBlank';
 
 import TagsIcon from '@material-ui/icons/LabelOutlined';
 import LevelIcon from '@material-ui/icons/LayersOutlined';  // Layers
@@ -39,10 +35,6 @@ import TimeIcon from '@material-ui/icons/Schedule';  // WatchLater
 import ChipInput from 'material-ui-chip-input';
 import Paper from '@material-ui/core/Paper';
 
-import { DateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
-import DateFnUtils from '@date-io/date-fns';
-
-import { Text, Flow, Icon, Grid, Sequence, Token } from '@vizstack/js';
 import { InteractionProvider, InteractionManager, Viewer } from '@vizstack/viewer';
 
 import RecordViewer from '../RecordViewer';
@@ -50,7 +42,7 @@ import { Record as RecordSchema } from '../../schema';
 
 import { AppState } from '../../store';
 import * as dashboard from '../../store/dashboard';
-import { flexbox } from '@material-ui/system';
+
 
 /** This smart component is the main dashboard view of the logger interface that allows exploration
  * and filtering of log records streamed from the various program clients. */
@@ -405,85 +397,73 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                             </div>
                             
                         </div>
-                        {/* <MuiPickersUtilsProvider utils={DateFnUtils}>
-                            <DateTimePicker
-                            clearable
-                            autoOk
-                            ampm={false}
-                            label="Start"
-                            inputVariant="outlined"
-                            value={startDate}
-                            onChange={(newDate: Date | null) => this.setState({startDate: newDate})}
-                            />
-                            <DateTimePicker 
-                            clearable
-                            autoOk
-                            ampm={false}
-                            label="End"
-                            inputVariant="outlined"
-                            value={endDate}
-                            onChange={(newDate: Date | null) => this.setState({endDate: newDate})}
-                            />
-                        </MuiPickersUtilsProvider> */}
+                    </div>
+                    <div className={classes.sidebarSpacer}/>
+                    {/* Tags ------------------------------------------------------------------- */}
+                    <div className={classes.sidebarBox}>
+                        <div className={classes.sidebarIconHeading}>
+                            <TagsIcon className={classes.icon}/>
+                            <span>Tags</span>
+                        </div>
+                        <ChipInput 
+                            clearInputValueOnChange
+                            className={classes.filterBar}
+                            value={filters}
+                            onAdd={this.addTextFilter}
+                            onDelete={this.deleteTextFilter}
+                            onUpdateInput={this.updateSuggestionInput}
+                            // When we click a suggestion, the chip input will blur, clearing the 
+                            // suggestions before the click is consumed. a timeout delays the clear.
+                            onBlur={() => setTimeout(() => this.setState((state) => ({suggestions: {options: [], selectedIdx: -1}})), 100)}
+                            onKeyDown={(e: any) => {
+                                if (e.key === 'ArrowDown') {
+                                    if (suggestions.options.length > 0 && suggestions.selectedIdx < suggestions.options.length - 1) {
+                                        this.setState((state) => ({suggestions: {...state.suggestions, selectedIdx: suggestions.selectedIdx + 1}}));
+                                    }
+                                }
+                                if (e.key === 'ArrowUp') {
+                                    if (suggestions.options.length > 0 && suggestions.selectedIdx >= 0) {
+                                        this.setState((state) => ({suggestions: {...state.suggestions, selectedIdx: suggestions.selectedIdx - 1}}));
+                                    }
+                                }
+                                if (e.key === 'Enter') {
+                                    if (suggestions.options.length > 0 && suggestions.selectedIdx !== -1) {
+                                        this.addTextFilter(suggestions.options[suggestions.selectedIdx]);
+                                        this.setState((state) => ({suggestions: {...state.suggestions, options: []}}));
+                                        e.preventDefault();
+                                    }
+                                }
+                            }}
+                        />
+                        {
+                            suggestions.options.length > 0 ? (
+                                <Paper className={classes.suggestionsContainer}>
+                                    {suggestions.options.map((suggestion, idx) => (
+                                        <MenuItem 
+                                        key={suggestion} 
+                                        selected={suggestions.selectedIdx === idx}
+                                        component="div" 
+                                        onClick={(e: any) => {
+                                            this.addTextFilter(suggestion);
+                                            this.setState((state) => ({suggestions: {...state.suggestions, options: []}}));
+                                            e.preventDefault();
+                                        }}>{suggestion}</MenuItem>
+                                    ))}
+                                </Paper>
+                            ): null
+                        }
                     </div>
                 </div>
                 {/* Canvas ===================================================================== */}
                 <div className={classes.canvas}>
-                    <GridComponent container direction={"row"}>
-                        <div className={classes.filterContainer}>
-                            <ChipInput 
-                                clearInputValueOnChange
-                                className={classes.filterBar}
-                                value={filters}
-                                onAdd={this.addTextFilter}
-                                onDelete={this.deleteTextFilter}
-                                onUpdateInput={this.updateSuggestionInput}
-                                // when we click a suggestion, the chip input will blur, clearing the 
-                                // suggestions before the click is consumed. a timeout delays the clear.
-                                onBlur={() => setTimeout(() => this.setState((state) => ({suggestions: {options: [], selectedIdx: -1}})), 100)}
-                                onKeyDown={(e: any) => {
-                                    if (e.key === 'ArrowDown') {
-                                        if (suggestions.options.length > 0 && suggestions.selectedIdx < suggestions.options.length - 1) {
-                                            this.setState((state) => ({suggestions: {...state.suggestions, selectedIdx: suggestions.selectedIdx + 1}}));
-                                        }
-                                    }
-                                    if (e.key === 'ArrowUp') {
-                                        if (suggestions.options.length > 0 && suggestions.selectedIdx >= 0) {
-                                            this.setState((state) => ({suggestions: {...state.suggestions, selectedIdx: suggestions.selectedIdx - 1}}));
-                                        }
-                                    }
-                                    if (e.key === 'Enter') {
-                                        if (suggestions.options.length > 0 && suggestions.selectedIdx !== -1) {
-                                            this.addTextFilter(suggestions.options[suggestions.selectedIdx]);
-                                            this.setState((state) => ({suggestions: {...state.suggestions, options: []}}));
-                                            e.preventDefault();
-                                        }
-                                    }
-                                }}
-                            />
-                            {
-                                suggestions.options.length > 0 ? (
-                                    <Paper className={classes.suggestionsContainer}>
-                                        {suggestions.options.map((suggestion, idx) => (
-                                            <MenuItem 
-                                            key={suggestion} 
-                                            selected={suggestions.selectedIdx === idx}
-                                            component="div" 
-                                            onClick={(e: any) => {
-                                                this.addTextFilter(suggestion);
-                                                this.setState((state) => ({suggestions: {...state.suggestions, options: []}}));
-                                                e.preventDefault();
-                                            }}>{suggestion}</MenuItem>
-                                        ))}
-                                    </Paper>
-                                ): null
-                            }
-                        </div>
-                    </GridComponent>
                     <InteractionProvider manager={this._tableManager}>
-                        {this.getRecordViewers(shownRecords, true)}
-                        <div className={classes.recordList}>
-                            {this.getRecordViewers(shownRecords, false)}
+                        <div className={classes.recordsContainer}>
+                            <div className={classes.pinnedRecordsList}>
+                                {this.getRecordViewers(shownRecords, true)}
+                            </div>
+                            <div className={classes.unpinnedRecordsList}>
+                                {this.getRecordViewers(shownRecords, false)}
+                            </div>
                         </div>
                     </InteractionProvider>
                     <div className={classes.pageBar}>
@@ -547,17 +527,19 @@ const styles = (theme: Theme) =>
             margin: theme.scale(16),
         },
         sidebar: {
-            minWidth: 200,
+            width: 220,
             marginRight: theme.scale(16),
             overflow: 'auto',
         },
         canvas: {
+            width: 0,  // Hack to stop overflow.
             flexGrow: 1,
             backgroundColor: theme.color.white,
             padding: theme.scale(16),
             borderRadius: theme.shape.borderRadius,
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'scroll',
         },
         sidebarBox: {
             backgroundColor: theme.color.white,
@@ -580,6 +562,7 @@ const styles = (theme: Theme) =>
             marginRight: theme.scale(8),
         },
 
+        // Level filter.
         levelFilterContainer: {
             flexGrow: 1,
             display: 'flex',
@@ -616,6 +599,7 @@ const styles = (theme: Theme) =>
             textAlign: 'right',
         },
         
+        // Time filter.
         timeFilterContainer: {
             display: 'flex',
             flexDirection: 'row',
@@ -624,10 +608,26 @@ const styles = (theme: Theme) =>
             color: theme.vars.emphasis.less,
         },
 
+        // Tags filter.
+        tagsFilterContainer: {
+
+        },
+
+        // Records.
+        recordsContainer: {
+
+        },
+        pinnedRecordsList: {
+
+        },
+
+        unpinnedRecordsList: {
+            
+        },
+
         filterBar: {
             width: '100%',
         },
-        
         filterContainer: {
             position: 'relative',
             width: '100%',
@@ -640,9 +640,6 @@ const styles = (theme: Theme) =>
             right: 0,
             zIndex: 1
         },
-        
-        
-        
         
         buttonGutter: {
             width: '50px',

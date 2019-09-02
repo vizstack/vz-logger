@@ -6,10 +6,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { createSelector } from 'reselect';
 
-import Grid from '@material-ui/core/Grid';
 import IconButton from '@material-ui/core/IconButton';
-import Typography from '@material-ui/core/Typography';
-import TagsIcon from '@material-ui/icons/LabelOutlined';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import LockIcon from '@material-ui/icons/Lock';
@@ -17,7 +14,6 @@ import LockOpenIcon from '@material-ui/icons/LockOpen';
 import LevelIcon from '@material-ui/icons/LayersOutlined';  // Layers
 import TimeIcon from '@material-ui/icons/Schedule';  // WatchLater
 
-import { Text, Flow, Icon, Sequence, Token } from '@vizstack/js';
 import { InteractionProvider, InteractionManager, Viewer } from '@vizstack/viewer';
 
 import { Record } from '../../schema';
@@ -87,62 +83,58 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
         const date = new Date(timestamp);
 
         return (
-            <div className={classes.root}>
-                <div className={clsx({
-                    [classes.box]: true,
-                    [classes.viewerBoxCollapsed]: !expanded, 
-                })} tabIndex={0} onFocus={() => {
-                    interactionManager.emit('RecordViewer.DidFocus', {viewerId: this._viewer ? this._viewer.viewerId : null});
-                }}>
-                    <Viewer view={view.asMutable({deep: true})} ref={this.updateViewerRef} />
+            <div className={classes.container}>
+                <div className={classes.buttons}>
+                    {pinned ? (
+                        <IconButton
+                            className={classes.button}
+                            aria-label="unlock"
+                            tabIndex={-1} // Disable "tabbing" to this button so that we can tab from one row right to the next.
+                            onClick={() => togglePinned()}>
+                            <LockIcon className={classes.icon} />
+                        </IconButton>
+                    ) : (
+                        <IconButton
+                            className={classes.button}
+                            aria-label="lock"
+                            tabIndex={-1}
+                            onClick={() => togglePinned()}>
+                            <LockOpenIcon className={classes.icon} />
+                        </IconButton>
+                    )}
+                    {expanded ? (
+                        <IconButton
+                            className={classes.button}
+                            aria-label="collapse"
+                            tabIndex={-1}
+                            onClick={() => toggleExpanded()}>
+                            <ExpandLessIcon className={classes.icon} />
+                        </IconButton>
+                    ) : (
+                        <IconButton
+                            className={classes.button}
+                            aria-label="expand"
+                            tabIndex={-1}
+                            onClick={() => toggleExpanded()}>
+                            <ExpandMoreIcon className={classes.icon} />
+                        </IconButton>
+                    )}
                 </div>
-                <div className={clsx(classes.box, classes.metadata)}>
-                    <Grid item container direction="row" alignItems="center">
-                        <Grid item>
-                            <Typography variant='caption' color='textSecondary'>
-                                {`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} at ${date.getHours()}:${date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes()}:${date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds()}.${date.getMilliseconds()} from ${filePath}:${lineNumber}`}
-                            </Typography>
-                        </Grid>
-                        <Grid item>
-                            {pinned ? (
-                                <IconButton
-                                    className={classes.button}
-                                    aria-label="unlock"
-                                    tabIndex={-1} // Disable "tabbing" to this button so that we can tab from one row right to the next.
-                                    onClick={() => togglePinned()}>
-                                    <LockIcon className={classes.icon} />
-                                </IconButton>
-                            ) : (
-                                <IconButton
-                                    className={classes.button}
-                                    aria-label="lock"
-                                    tabIndex={-1}
-                                    onClick={() => togglePinned()}>
-                                    <LockOpenIcon className={classes.icon} />
-                                </IconButton>
-                            )}
-                        </Grid>
-                        <Grid item>
-                            {expanded ? (
-                                <IconButton
-                                    className={classes.button}
-                                    aria-label="collapse"
-                                    tabIndex={-1}
-                                    onClick={() => toggleExpanded()}>
-                                    <ExpandLessIcon className={classes.icon} />
-                                </IconButton>
-                            ) : (
-                                <IconButton
-                                    className={classes.button}
-                                    aria-label="expand"
-                                    tabIndex={-1}
-                                    onClick={() => toggleExpanded()}>
-                                    <ExpandMoreIcon className={classes.icon} />
-                                </IconButton>
-                            )}
-                        </Grid>
-                    </Grid>
+                <div className={classes.content}>
+                    <div className={classes.metadata}>
+                            {`${date.toLocaleString().split(', ').join(' | ')} | ${filePath}:${lineNumber}`}
+                      
+                    </div>
+                    <div className={clsx({
+                        [classes.viewer]: true,
+                        [classes.viewerCollapsed]: !expanded, 
+                    })} tabIndex={0} onFocus={() => {
+                        interactionManager.emit('RecordViewer.DidFocus', {viewerId: this._viewer ? this._viewer.viewerId : null});
+                    }}>
+                        <Viewer view={view.asMutable({deep: true})} ref={this.updateViewerRef} />
+                    </div>
                 </div>
+                
             </div>
             /* <Grid container direction="row">
                 <Grid item className={clsx({
@@ -219,21 +211,33 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
 
 const styles = (theme: Theme) =>
     createStyles({
-        root: {
-            display: 'inline-block',
-            width: '100%',
+        container: {
+            display: 'flex',
+            flexDirection: 'row',
+            borderTop: `2px solid ${theme.color.gray.base}`,
+            paddingTop: theme.scale(2),
+            paddingBottom: theme.scale(4),
+        },
+        buttons: {
+            width: theme.scale(32),
+        },
+        content: {
+            width: 0, // Hack to prevent overflow.
+            flexGrow: 1,
+        },
+
+        viewer: {
+            overflow: 'auto',
+        },
+        viewerCollapsed: {
+            maxHeight: theme.scale(128),
         },
         metadata: {
-            float: 'right',
+            ...theme.vars.text.caption,
+            color: theme.vars.emphasis.less,
+            textAlign: 'right',
         },
-        box: {
-            display: 'inline-block',
-        },
-        viewerBoxCollapsed: {
-            maxHeight: 50,
-            overflow: 'hidden',
-            verticalAlign: 'bottom',  // this prevents the row height from changing when overflow is set to "hidden"; see https://stackoverflow.com/questions/22421782/css-overflow-hidden-increases-height-of-container
-        },
+
         buttonGutter: {
             width: '50px',
             height: '100%',
