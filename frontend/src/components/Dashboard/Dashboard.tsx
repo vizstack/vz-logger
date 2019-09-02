@@ -218,13 +218,13 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
         shownLoggers: string[],
         shownFunctions: string[],
     }) {
-        const { pinnedIdxs, expandedIdxs, endDate, startDate, sortBy, sortReverse } = this.state;
+        const { pinnedIdxs, expandedIdxs, endDate, startDate, sortBy, sortReverse, page, recordsPerPage } = this.state;
         const { shownTags, shownLevels, shownFiles, shownLoggers, shownFunctions } = filterCollections;
 
         return records.map((record, idx) => ({record, idx}))
-        .filter(({idx}) => pinned ? pinnedIdxs.has(idx) : !pinnedIdxs.has(idx))
+        .filter(({idx}) => pinned ? pinnedIdxs.has(idx) : (
+            !pinnedIdxs.has(idx) && idx >= recordsPerPage * page && idx < recordsPerPage * (page + 1)))
         .filter(({record}) => {
-            const { startDate, endDate } = this.state;
             return (startDate === null || startDate.getTime() < record.timestamp) && 
             (endDate === null || endDate.getTime() > record.timestamp) && 
             (shownTags.length === 0 || shownTags.some((tag) => record.tags.indexOf(tag) !== -1)) &&
