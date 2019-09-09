@@ -1,12 +1,9 @@
 {
   "name": "vz-logger",
-  "version": "1.0.0",
-  "description": "Multi-platform and web-based logger, built with Vizstack.",
-  "repository": "https://github.com/vizstack/vz-logger",
-  "license": "MIT",
   "devDependencies": {
     "concurrently": "^4.1.0",
     "npm-run-all": "^4.1.5",
+    "pkg": "^4.4.0",
     "prettier": "^1.18.2"
   },
   "scripts": {
