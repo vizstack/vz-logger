@@ -539,7 +539,6 @@ const styles = (theme: Theme) =>
             borderRadius: theme.shape.borderRadius,
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'scroll',
         },
         sidebarBox: {
             backgroundColor: theme.color.white,
@@ -615,7 +614,8 @@ const styles = (theme: Theme) =>
 
         // Records.
         recordsContainer: {
-
+            height: '100%',
+            overflow: 'scroll',
         },
         pinnedRecordsList: {
 
