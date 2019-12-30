@@ -11,7 +11,7 @@ setup(
     zip_safe=False,
     author='Ryan Holmdahl & Nikhil Bhattasali',
     author_email='vizstack@gmail.com',
-    install_requires=['vizstack-py', 'python-socketio'],
+    install_requires=['vizstack-py', 'python-socketio', 'requests'],
     description="Send beautiful messages to the Vizstack Logger.",
     url='https://github.com/vizstack/vz-logger',
     long_description=long_description,

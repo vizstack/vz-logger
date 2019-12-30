@@ -390,10 +390,10 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                         />
                         <div className={classes.timeFilterContainer}>
                             <div style={{ textAlign: 'left '} as any}>
-                            {(new Date(records.length === 0 ? creationTime : sliderValue[0])).toLocaleString().split(', ').map((text) => <div>{text}</div>)}
+                            {(new Date(records.length === 0 ? creationTime : sliderValue[0])).toLocaleString().split(', ').map((text, i) => <div key={i}>{text}</div>)}
                             </div>
                             <div style={{ textAlign: 'right '} as any}>
-                                {(new Date(records.length === 0 ? creationTime : sliderValue[1])).toLocaleString().split(', ').map((text) => <div>{text}</div>)}
+                                {(new Date(records.length === 0 ? creationTime : sliderValue[1])).toLocaleString().split(', ').map((text, i) => <div key={i}>{text}</div>)}
                             </div>
                             
                         </div>
