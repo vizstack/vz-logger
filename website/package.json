@@ -1,0 +1,64 @@
+{
+  "name": "vz-logger-website",
+  "private": true,
+  "description": "Website for vz-logger.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "prestart": "npm run clean",
+    "start": "npm run develop",
+    "develop": "gatsby develop",
+    "prebuild": "npm run clean",
+    "build": "gatsby build --prefix-paths",
+    "serve": "gatsby serve --prefix-paths",
+    "clean": "rimraf public .docz .cache",
+    "format": "prettier --write src/**/*.{js,jsx}",
+    "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\""
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.15",
+    "@fortawesome/free-brands-svg-icons": "^5.7.2",
+    "@fortawesome/free-solid-svg-icons": "^5.7.2",
+    "@fortawesome/react-fontawesome": "^0.1.4",
+    "@material-ui/core": "^3.9.2",
+    "@material-ui/icons": "^3.0.2",
+    "classnames": "^2.2.6",
+    "core-js": "^2.6.5",
+    "gatsby": "^2.15.36",
+    "gatsby-plugin-manifest": "^2.0.22",
+    "gatsby-plugin-material-ui": "1.2.5",
+    "gatsby-plugin-offline": "^2.0.24",
+    "gatsby-plugin-react-helmet": "^3.0.8",
+    "gatsby-plugin-resolve-src": "^2.0.0",
+    "gatsby-plugin-sass": "^2.0.10",
+    "gatsby-theme-docz": "^2.0.0-rc.55",
+    "history": "^4.7.2",
+    "iframe-resizer": "^4.2.2",
+    "node-sass": "^4.11.0",
+    "nouislider": "^13.1.1",
+    "react": "^16.8.4",
+    "react-datetime": "^2.16.3",
+    "react-dom": "^16.8.4",
+    "react-helmet": "^5.2.0",
+    "react-icon": "^1.0.0",
+    "react-icons": "^3.5.0",
+    "react-iframe-resizer-super": "^0.2.2",
+    "react-router-dom": "^4.3.1",
+    "react-slick": "^0.23.2",
+    "react-swipeable-views": "^0.13.1",
+    "react-syntax-highlighter": "^11.0.2",
+    "typeface-roboto": "0.0.54",
+    "typeface-roboto-slab": "0.0.72"
+  },
+  "devDependencies": {
+    "prettier": "^1.16.4",
+    "rimraf": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vizstack/vz-logger"
+  },
+  "bugs": {
+    "url": "https://github.com/vizstack/vz-logger/issues"
+  }
+}

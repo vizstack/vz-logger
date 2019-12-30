@@ -1,0 +1,79 @@
+---
+name: Getting started
+route: /docs/getting-started
+menu: Docs
+---
+
+# Getting started
+
+## Part 1: Install the CLI tool
+
+Getting started with VZ-Logger is super easy. Install the CLI tool globally through `npm`:
+
+```shell
+npm install -g @vizstack/vz-logger
+```
+
+Once installed, start a server by running:
+
+```shell
+username:path/to/current/directory$ vz-logger
+```
+
+You can view incoming logs at localhost:4000 (by default).
+
+## Part 2: Install language-specific libraries
+
+Install any of the language-specific libraries to use in programs you want to log from:
+
+### Javascript/Typescript
+
+Install the library through `npm` into your Javascript/Typescript project:
+
+```shell
+npm install --save @vizstack/vz-logger-client
+```
+
+Once installed, you can start logging messages:
+
+```javascript
+// connect(host?): establishes connection to central logging server
+// getLogger(name): retrieves handle to logger with the given name
+import { connect, getLogger } from '@vizstack/vz-logger-client';
+const logger = getLogger('main');
+connect("http://localhost:4000");
+
+// ... YOUR CODE HERE ...
+logger.debug("Detailed debugging message, for verbose mode");
+logger.info("Informational message, just fyi");
+logger.warn("Warning message, should probably fix this");
+logger.error("Error message, critical problem");
+// ... YOUR CODE HERE ...
+```
+
+### Python
+
+Install the library through `pip` into your Python project:
+
+```shell
+pip install vz-logger
+```
+
+Once installed, you can start logging messages:
+
+```python
+# connect(host?): establishes connection to central logging server
+# get_logger(name): retrieves handle to logger with the given name
+from vzlogger import connect, get_logger
+logger = get_logger('main')
+
+if __name__ == '__main__':
+    with connect("http://localhost:4000"):
+        # ... YOUR CODE HERE ...
+        logger.debug("Detailed debugging message, for verbose mode")
+        logger.info("Informational message, just fyi")
+        logger.warn("Warning message, should probably fix this")
+        logger.error("Error message, critical problem")
+        # ... YOUR CODE HERE ...
+```
+
