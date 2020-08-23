@@ -2,7 +2,7 @@ certifi==2019.6.16
 chardet==3.0.4
 cuid==0.3
 idna==2.8
-python-engineio==3.8.1
+python-engineio==3.8.2.post1
 python-socketio==4.1.0
 requests==2.22.0
 six==1.12.0
