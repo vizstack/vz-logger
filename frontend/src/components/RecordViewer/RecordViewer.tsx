@@ -83,7 +83,13 @@ class RecordViewer extends React.Component<RecordViewerProps & InternalProps, Re
         const date = new Date(timestamp);
 
         return (
-            <div className={classes.container}>
+            <div className={clsx({
+                [classes.container]: true,
+                [classes.levelDebug]: level === 'debug',
+                [classes.levelInfo]: level === 'info',
+                [classes.levelWarn]: level === 'warn',
+                [classes.levelError]: level === 'error',
+            })}>
                 <div className={classes.buttons}>
                     {pinned ? (
                         <IconButton
@@ -215,8 +221,21 @@ const styles = (theme: Theme) =>
             display: 'flex',
             flexDirection: 'row',
             borderTop: `2px solid ${theme.color.gray.base}`,
+            borderLeft: `4px solid transparent`,
             paddingTop: theme.scale(2),
             paddingBottom: theme.scale(4),
+        },
+        levelDebug: {
+            borderLeftColor: theme.color.gray.base,
+        },
+        levelInfo: {
+            borderLeftColor: theme.color.blue.base,
+        },
+        levelWarn: {
+            borderLeftColor: theme.color.yellow.base,
+        },
+        levelError: {
+            borderLeftColor: theme.color.red.base,
         },
         buttons: {
             width: theme.scale(32),

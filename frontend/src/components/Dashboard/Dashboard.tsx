@@ -123,7 +123,7 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
             pinnedIdxs: new Set(),
             expandedIdxs: new Set(),
             sortBy: 'timestamp',
-            sortReverse: false,
+            sortReverse: true,
             shownLevels: [],
             creationTime: Date.now(),
             filterTimeStart: undefined,
@@ -231,9 +231,11 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
     private getRecordViewers(records: ImmutableObject<RecordSchema>[], pinned: boolean) {
         const { pinnedIdxs, expandedIdxs, sortBy, sortReverse, page, recordsPerPage } = this.state;
 
-        return records.map((record, idx) => ({record, idx}))
+        const startIdx = recordsPerPage * page;
+        const endIdx = recordsPerPage * (page + 1);
+        const visibleRecords = records.map((record, idx) => ({record, idx}))
         .filter(({idx}) => pinned ? pinnedIdxs.has(idx) : (
-            !pinnedIdxs.has(idx) && idx >= recordsPerPage * page && idx < recordsPerPage * (page + 1)))
+            !pinnedIdxs.has(idx)))
         .sort((r1, r2) => {
             if (r1.record[sortBy] < r2.record[sortBy]) {
                 return sortReverse ? 1 : -1;
@@ -243,7 +245,8 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
             }
             return 0;
         })
-        .map(({record, idx}) => (
+        .filter((_, aidx) => aidx >= startIdx && aidx < endIdx);
+        return visibleRecords.map(({record, idx}, vidx) => (
             <RecordViewer
                 key={`${record.timestamp}:${idx}`}
                 record={record}
@@ -253,19 +256,17 @@ class Dashboard extends React.Component<DashboardProps & InternalProps, Dashboar
                     const pinnedIdxs = new Set(state.pinnedIdxs);
                     if (pinnedIdxs.has(idx)) {
                         pinnedIdxs.delete(idx);
-                    }
-                    else {
+                    } else {
                         pinnedIdxs.add(idx);
                     }
                     return {pinnedIdxs};
                 })}
-                expanded={expandedIdxs.has(idx)}
+                expanded={expandedIdxs.has(idx) || (sortReverse ? vidx === 0 : vidx === visibleRecords.length - 1)}
                 toggleExpanded={() => this.setState((state) => {
                     const expandedIdxs = new Set(state.expandedIdxs);
                     if (expandedIdxs.has(idx)) {
                         expandedIdxs.delete(idx);
-                    }
-                    else {
+                    } else {
                         expandedIdxs.add(idx);
                     }
                     return {expandedIdxs};
@@ -575,16 +576,16 @@ const styles = (theme: Theme) =>
             marginRight: theme.scale(8),
         },
         levelFilterSwatchDebug: {
-            backgroundColor: theme.vars.fills.gray,
+            backgroundColor: theme.color.gray.base,
         },
         levelFilterSwatchInfo: {
-            backgroundColor: theme.vars.fills.blue,
+            backgroundColor: theme.color.blue.base,
         },
         levelFilterSwatchWarn: {
-            backgroundColor: theme.vars.fills.yellow,
+            backgroundColor: theme.color.yellow.base,
         },
         levelFilterSwatchError: {
-            backgroundColor: theme.vars.fills.red,
+            backgroundColor: theme.color.red.base,
         },
         levelFilterLabel: {
             ...theme.vars.text.body,

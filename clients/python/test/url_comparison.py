@@ -57,6 +57,7 @@ def main():
             "e": vz.Token('match', color='green') if len(diffs) == 1 else vz.Token('mismatch', color='red'),
             "f": diffs,
         }))
+        time.sleep(0.5)
         if len(diffs) == 1:
             off_by_one.append((url1, url2))
     l.info(vz.Text('Off-by-one:'), vz.Sequence(off_by_one, orientation='vertical'))
